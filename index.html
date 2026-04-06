@@ -413,7 +413,6 @@ html,body{width:100%;min-height:100dvh;overflow-x:hidden;
   </div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.js"></script>
 <script>
 // ════════════════════════════════════════════════
 //  ВСТАВЬТЕ СЮДА URL ВАШЕГО APPS SCRIPT
@@ -426,7 +425,7 @@ var urlParams  = new URLSearchParams(window.location.search);
 var presetRest = urlParams.get('restaurant') || '';
 
 // ── Состояние ────────────────────────────────────
-var ALL = [], cur = null, scanStream = null, scanRAF = null;
+var ALL = [], cur = null, scanStream = null, scanRAF = null, apiScanTimer = null;
 
 // ── Вспомогательные ──────────────────────────────
 function api(params) {
@@ -512,52 +511,111 @@ qEl.addEventListener('input', function(){
 function clearQ(){ qEl.value=''; qclr.classList.remove('on'); draw(ALL);
   document.getElementById('sec-hdr').textContent=ALL.length+' человек'; }
 
-// ══ ЖИВОЙ СКАНЕР ════════════════════════════════
+// ══ СКАНЕР — BarcodeDetector + api.qrserver.com fallback ═══════
+
+// Определяем метод сканирования один раз при загрузке
+var USE_NATIVE = (typeof BarcodeDetector !== 'undefined');
+var detector   = null;
+if (USE_NATIVE) {
+  try { detector = new BarcodeDetector({ formats: ['qr_code'] }); } catch(e) { USE_NATIVE = false; }
+}
+
 function startScan() {
   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-    alert('Ваш браузер не поддерживает камеру');
+    alert('Ваш браузер не поддерживает камеру. Введите ID вручную.');
     return;
   }
   showScreen('scr-scan');
-  document.getElementById('manual-id').value='';
+  document.getElementById('manual-id').value = '';
 
-  navigator.mediaDevices.getUserMedia({
-    video: { facingMode: { ideal:'environment' }, width:{ideal:1280}, height:{ideal:720} }
-  })
-  .then(function(stream) {
-    scanStream = stream;
-    var v = document.getElementById('scan-video');
-    v.srcObject = stream;
-    v.play().then(function(){
-      var c = document.getElementById('scan-canvas');
-      c.width = v.videoWidth; c.height = v.videoHeight;
-      scanLoop(v, c, c.getContext('2d'));
+  var constraints = {
+    video: {
+      facingMode: { ideal: 'environment' },
+      width:  { ideal: 1920 },
+      height: { ideal: 1080 }
+    }
+  };
+
+  navigator.mediaDevices.getUserMedia(constraints)
+    .then(function(stream) {
+      scanStream = stream;
+      var v = document.getElementById('scan-video');
+      v.srcObject = stream;
+      v.play().then(function() {
+        var c = document.getElementById('scan-canvas');
+        c.width  = v.videoWidth  || 1280;
+        c.height = v.videoHeight || 720;
+        if (USE_NATIVE) {
+          scanLoopNative(v);
+        } else {
+          scanLoopAPI(v, c, c.getContext('2d'));
+        }
+      });
+    })
+    .catch(function(err) {
+      console.log('Camera error:', err.name, err.message);
+      document.querySelector('.scan-hint').textContent = 'Камера недоступна — введите ID вручную ↓';
     });
-  })
-  .catch(function(err) {
-    console.log('Camera:', err.name, err.message);
-    // Камера не дала разрешение — просто показываем поле для ручного ввода
-    document.querySelector('.scan-hint').textContent='Введите ID вручную ↓';
-  });
 }
 
-function scanLoop(v, c, ctx) {
+// ── Вариант 1: BarcodeDetector (Chrome, Safari 17+) ──────────
+function scanLoopNative(v) {
   if (!scanStream) return;
-  if (v.readyState === v.HAVE_ENOUGH_DATA) {
+  detector.detect(v)
+    .then(function(codes) {
+      if (codes && codes.length > 0) {
+        var text = codes[0].rawValue.trim();
+        if (text) { stopScan(); lookupAndOpen(text); return; }
+      }
+      scanRAF = requestAnimationFrame(function() { scanLoopNative(v); });
+    })
+    .catch(function() {
+      // Ошибка детектора — просто продолжаем
+      scanRAF = requestAnimationFrame(function() { scanLoopNative(v); });
+    });
+}
+
+// ── Вариант 2: api.qrserver.com (fallback) ───────────────────
+// Делаем снимок каждые 800мс и отправляем на API
+var apiScanTimer = null;
+
+function scanLoopAPI(v, c, ctx) {
+  if (!scanStream) return;
+  apiScanTimer = setInterval(function() {
+    if (!scanStream) { clearInterval(apiScanTimer); return; }
+    if (v.readyState < v.HAVE_ENOUGH_DATA) return;
+
     ctx.drawImage(v, 0, 0, c.width, c.height);
-    var img  = ctx.getImageData(0, 0, c.width, c.height);
-    var code = jsQR(img.data, img.width, img.height, { inversionAttempts:'dontInvert' });
-    if (code && code.data) {
-      var text = code.data.trim();
-      if (text) { stopScan(); lookupAndOpen(text); return; }
-    }
-  }
-  scanRAF = requestAnimationFrame(function(){ scanLoop(v, c, ctx); });
+    c.toBlob(function(blob) {
+      if (!blob || !scanStream) return;
+      var form = new FormData();
+      form.append('file', blob, 'qr.jpg');
+      fetch('https://api.qrserver.com/v1/read-qr-code/', {
+        method: 'POST',
+        body: form
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (!scanStream) return;
+        try {
+          var text = data[0].symbol[0].data;
+          if (text && text.trim()) {
+            stopScan();
+            lookupAndOpen(text.trim());
+          }
+        } catch(e) {
+          // QR не найден на кадре — продолжаем
+        }
+      })
+      .catch(function() {}); // сетевая ошибка — продолжаем
+    }, 'image/jpeg', 0.9);
+  }, 800);
 }
 
 function stopScan() {
-  if (scanRAF) { cancelAnimationFrame(scanRAF); scanRAF=null; }
-  if (scanStream) { scanStream.getTracks().forEach(function(t){ t.stop(); }); scanStream=null; }
+  if (scanRAF)      { cancelAnimationFrame(scanRAF); scanRAF = null; }
+  if (apiScanTimer) { clearInterval(apiScanTimer);   apiScanTimer = null; }
+  if (scanStream)   { scanStream.getTracks().forEach(function(t){ t.stop(); }); scanStream = null; }
   showScreen('scr-main');
 }
 
