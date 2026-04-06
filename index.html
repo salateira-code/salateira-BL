@@ -10,7 +10,7 @@
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
 :root{
-  --G:#2E7D52;--GD:#1a5c38;--GL:#e6f4ed;
+  --G:#38B04C;--GD:#1D712B;--GL:#e6f4ed;
   --B:#1a6fa8;--BL:#e8f2fb;
   --O:#b85c00;--OL:#fef3e2;
   --R:#d63031;--RL:#ffeaea;
@@ -276,7 +276,7 @@ html,body{width:100%;min-height:100dvh;overflow-x:hidden;
       </div>
       <div class="scan-btn-txt">
         <h3>Сканировать QR</h3>
-        <p>Навести камеру на код клиента</p>
+        <p>Навести камеру на код гостя</p>
       </div>
       <svg width="20" height="20" fill="none" viewBox="0 0 20 20">
         <path d="M7 4l6 6-6 6" stroke="rgba(255,255,255,.6)" stroke-width="2.5" stroke-linecap="round"/>
@@ -320,7 +320,7 @@ html,body{width:100%;min-height:100dvh;overflow-x:hidden;
       <div class="sc sc-br" style="position:absolute;bottom:0;right:0"></div>
     </div>
   </div>
-  <div class="scan-hint">Наведите камеру на QR‑код клиента</div>
+  <div class="scan-hint">Наведите камеру на QR‑код гостя</div>
   <div class="manual-bar">
     <input id="manual-id" type="text" placeholder="Или введите ID вручную..."
            autocomplete="off" autocorrect="off" autocapitalize="characters"/>
@@ -392,14 +392,14 @@ html,body{width:100%;min-height:100dvh;overflow-x:hidden;
   <div class="ok-s" id="ok-sub">Визит записан</div>
   <div class="receipt">
     <div class="rr"><span class="rk">Ресторан</span><span class="rv" id="ok-r"></span></div>
-    <div class="rr"><span class="rk">Клиент</span><span class="rv" id="ok-b"></span></div>
+    <div class="rr"><span class="rk">Гость</span><span class="rv" id="ok-b"></span></div>
     <div class="rr"><span class="rk">Категория</span><span class="rv" id="ok-cat"></span></div>
     <div class="rr"><span class="rk">Сумма чека</span><span class="rv" id="ok-a"></span></div>
     <div class="rr" id="ok-disc-row"><span class="rk" id="ok-dlbl">Скидка</span><span class="rv" id="ok-disc"></span></div>
     <div class="rr" id="ok-pay-row"><span class="rk">К оплате</span><span class="rv hl" id="ok-pay"></span></div>
     <div class="rr" id="ok-rem-row"><span class="rk">Остаток лимита</span><span class="rv" id="ok-rem"></span></div>
   </div>
-  <button class="btn-again" onclick="home()">← Следующий клиент</button>
+  <button class="btn-again" onclick="home()">← Следующий гость</button>
 </div>
 
 <!-- ════ НЕ НАЙДЕН ════════════════════════ -->
