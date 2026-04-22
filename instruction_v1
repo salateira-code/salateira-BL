@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Инструкция — Карты блогеров · Salateira</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Onest:wght@300;400;500;600;700;800&display=swap');
+
+  :root {
+    --green: #38B04C;
+    --lime: #A1FF00;
+    --dark: #111a13;
+    --muted: #4a5e4d;
+    --bg: #f5f9f5;
+    --white: #ffffff;
+    --border: #dceedd;
+    --warn: #ff6b35;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Onest', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--dark);
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ── HEADER ────────────────────────────────── */
+  .header {
+    background: var(--green);
+    padding: 48px 60px 40px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 24px;
+  }
+
+  .header-left h1 {
+    font-size: 36px;
+    font-weight: 800;
+    color: var(--white);
+    line-height: 1.1;
+    letter-spacing: -0.5px;
+  }
+
+  .header-left .sub {
+    margin-top: 8px;
+    font-size: 15px;
+    font-weight: 400;
+    color: rgba(255,255,255,0.75);
+  }
+
+  .header-badge {
+    background: var(--lime);
+    color: #1a4a00;
+    font-size: 13px;
+    font-weight: 700;
+    padding: 8px 18px;
+    border-radius: 100px;
+    white-space: nowrap;
+    letter-spacing: 0.3px;
+  }
+
+  /* ── MAIN ──────────────────────────────────── */
+  .main {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 56px 40px 80px;
+  }
+
+  /* ── SECTION ────────────────────────────────── */
+  .section {
+    margin-bottom: 52px;
+  }
+
+  .section-title {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 24px;
+  }
+
+  .section-num {
+    width: 40px;
+    height: 40px;
+    background: var(--green);
+    color: white;
+    font-size: 18px;
+    font-weight: 800;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .section-title h2 {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--dark);
+    line-height: 1.2;
+  }
+
+  /* ── CARD ────────────────────────────────── */
+  .card {
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  /* ── STEPS ────────────────────────────────── */
+  .step {
+    display: flex;
+    gap: 20px;
+    padding: 22px 28px;
+    border-bottom: 1.5px solid var(--border);
+  }
+
+  .step:last-child {
+    border-bottom: none;
+  }
+
+  .step-dot {
+    width: 28px;
+    height: 28px;
+    background: var(--lime);
+    color: #1a4a00;
+    font-size: 13px;
+    font-weight: 800;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .step-body {
+    flex: 1;
+  }
+
+  .step-body strong {
+    display: block;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--dark);
+    margin-bottom: 4px;
+  }
+
+  .step-body p {
+    font-size: 14px;
+    color: var(--muted);
+    line-height: 1.55;
+  }
+
+  .step-body .url-chip {
+    display: inline-block;
+    background: #eef8f0;
+    border: 1px solid var(--border);
+    color: var(--green);
+    font-size: 13px;
+    font-weight: 600;
+    padding: 5px 14px;
+    border-radius: 8px;
+    margin-top: 8px;
+    font-family: monospace;
+    letter-spacing: 0.2px;
+  }
+
+  /* ── ALERT BOX ───────────────────────────── */
+  .alert {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+    padding: 20px 24px;
+    border-radius: 14px;
+    margin-top: 16px;
+  }
+
+  .alert.warn {
+    background: #fff4f0;
+    border: 1.5px solid #ffd0be;
+  }
+
+  .alert.info {
+    background: #f0faf2;
+    border: 1.5px solid #c3e8cc;
+  }
+
+  .alert-icon {
+    font-size: 22px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .alert-body strong {
+    display: block;
+    font-size: 14px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    color: var(--dark);
+  }
+
+  .alert-body p {
+    font-size: 13.5px;
+    color: var(--muted);
+    line-height: 1.55;
+  }
+
+  /* ── TWO COLUMN ────────────────────────────── */
+  .two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-top: 16px;
+  }
+
+  .mini-card {
+    background: var(--white);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    padding: 20px 22px;
+  }
+
+  .mini-card .emoji {
+    font-size: 24px;
+    margin-bottom: 10px;
+    display: block;
+  }
+
+  .mini-card strong {
+    font-size: 14px;
+    font-weight: 700;
+    display: block;
+    margin-bottom: 6px;
+    color: var(--dark);
+  }
+
+  .mini-card p {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  /* ── DIVIDER ─────────────────────────────── */
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 40px 0;
+  }
+
+  /* ── FOOTER ──────────────────────────────── */
+  .footer {
+    background: var(--green);
+    padding: 28px 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .footer p {
+    font-size: 13px;
+    color: rgba(255,255,255,0.7);
+  }
+
+  .footer strong {
+    color: white;
+  }
+
+  /* ── PRINT ────────────────────────────────── */
+  @media print {
+    body { background: white; }
+    .header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .footer { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .section-num { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .step-dot { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .header-badge { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+
+  @media (max-width: 600px) {
+    .header { padding: 32px 24px 28px; flex-direction: column; align-items: flex-start; }
+    .main { padding: 32px 20px 60px; }
+    .two-col { grid-template-columns: 1fr; }
+    .footer { flex-direction: column; gap: 8px; padding: 24px; }
+    .step { padding: 18px 20px; }
+    .header-left h1 { font-size: 26px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-left">
+    <h1>Карты блогеров<br>— как с ними работать</h1>
+    <p class="sub">Инструкция для сотрудников · Salateira 2026</p>
+  </div>
+  <div class="header-badge">Только для персонала</div>
+</div>
+
+<div class="main">
+
+  <!-- ── 1. КАК ОТКРЫТЬ СВОЁ ПРИЛОЖЕНИЕ ──────────── -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-num">1</div>
+      <h2>Как открыть приложение проверки баланса</h2>
+    </div>
+    <div class="card">
+      <div class="step">
+        <div class="step-dot">→</div>
+        <div class="step-body">
+          <strong>Открой браузер Chrome на рабочем смартфоне</strong>
+          <p>Используй именно Chrome — другие браузеры не поддерживают добавление на рабочий стол корректно.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-dot">→</div>
+        <div class="step-body">
+          <strong>Открой ссылку своего ресторана</strong>
+          <p>У каждого ресторана своя ссылка — ты получишь её в личных сообщениях. Просто нажми на неё или скопируй в адресную строку Chrome.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-dot">→</div>
+        <div class="step-body">
+          <strong>Убедись, что страница открылась</strong>
+          <p>Появится главный экран приложения. Если вместо него пустая страница или ошибка — попробуй перезагрузить или обновить Chrome.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 2. ДОБАВИТЬ НА ГЛАВНЫЙ ЭКРАН ─────────────── -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-num">2</div>
+      <h2>Как добавить приложение на главный экран</h2>
+    </div>
+    <p style="font-size:14px;color:var(--muted);margin-bottom:18px;">Делается один раз — потом открываешь одним касанием, как обычное приложение.</p>
+    <div class="card">
+      <div class="step">
+        <div class="step-dot">1</div>
+        <div class="step-body">
+          <strong>Открой нужную ссылку в Chrome</strong>
+          <p>Страница с проверкой баланса должна быть открыта и полностью загружена.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-dot">2</div>
+        <div class="step-body">
+          <strong>Нажми три точки (⋮) в правом верхнем углу браузера</strong>
+          <p>Появится выпадающее меню с опциями.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-dot">3</div>
+        <div class="step-body">
+          <strong>Выбери «Добавить на главный экран»</strong>
+          <p>Пункт находится примерно в середине списка. Если его не видно — прокрути меню вниз.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-dot">4</div>
+        <div class="step-body">
+          <strong>Подтверди название и нажми «Добавить»</strong>
+          <p>Название можно оставить как есть — «Salateira» или что-то похожее. Нажми «Добавить» в появившемся диалоге.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-dot">5</div>
+        <div class="step-body">
+          <strong>Иконка появится на рабочем столе</strong>
+          <p>Теперь приложение открывается в один клик, без набора адреса. Иконку можно перетащить в удобное место.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="alert info" style="margin-top:16px;">
+      <div class="alert-icon">💡</div>
+      <div class="alert-body">
+        <strong>Не вижу пункта «Добавить на главный экран»</strong>
+        <p>Проверь: браузер должен быть именно Chrome, а не Samsung Internet, Firefox или встроенный браузер. Обнови Chrome до последней версии через Play Market.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 3. КАК РАБОТАТЬ С КОДАМИ ─────────────────── -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-num">3</div>
+      <h2>Как принимать оплату по карте блогера</h2>
+    </div>
+    <div class="card">
+      <div class="step">
+        <div class="step-dot">1</div>
+        <div class="step-body">
+          <strong>Блогер показывает QR-код — на телефоне или распечатанный</strong>
+          <p>QR может быть в мессенджере, в галерее, или на бумажной карточке. Неважно — формат одинаковый.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-dot">2</div>
+        <div class="step-body">
+          <strong>Открой приложение на рабочем телефоне и отсканируй код</strong>
+          <p>Наведи камеру на QR, удерживай ровно. Сканирование занимает 1–2 секунды. Код должен попасть в рамку целиком.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-dot">3</div>
+        <div class="step-body">
+          <strong>Проверь имя и остаток на экране</strong>
+          <p>На экране появится имя блогера и его текущий баланс в рублях. Убедись, что сумма заказа не превышает остаток.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-dot">4</div>
+        <div class="step-body">
+          <strong>Введи сумму заказа и подтверди списание</strong>
+          <p>Введи точную сумму по чеку. После подтверждения баланс автоматически уменьшится. Операция фиксируется в системе.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 4. ЕСЛИ КОД НЕ ЧИТАЕТСЯ ──────────────────── -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-num">4</div>
+      <h2>Если QR-код не сканируется</h2>
+    </div>
+
+    <div class="two-col">
+      <div class="mini-card">
+        <span class="emoji">🔢</span>
+        <strong>Введи код вручную</strong>
+        <p>Под QR-кодом на карточке есть номер вида <strong>BL-01519</strong>. Нажми «Ввести код вручную» в приложении и введи его.</p>
+      </div>
+      <div class="mini-card">
+        <span class="emoji">🔤</span>
+        <strong>Введи имя и фамилию</strong>
+        <p>Поиск работает также по имени. Введи фамилию или имя блогера — система найдёт его карточку.</p>
+      </div>
+      <div class="mini-card">
+        <span class="emoji">📏</span>
+        <strong>Измени расстояние и яркость</strong>
+        <p>Оптимальное расстояние — 10–20 см. Попроси поднять яркость экрана на телефоне блогера до максимума.</p>
+      </div>
+      <div class="mini-card">
+        <span class="emoji">🧹</span>
+        <strong>Протри объектив и перезагрузи</strong>
+        <p>Загрязнённый объектив — частая причина. Протри камеру тканью. Если не помогло — обнови страницу в браузере.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 5. ЧАСТЫЕ ВОПРОСЫ ─────────────────────────── -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-num">5</div>
+      <h2>Частые вопросы</h2>
+    </div>
+    <div class="card">
+      <div class="step">
+        <div class="step-dot">?</div>
+        <div class="step-body">
+          <strong>Блогер забыл / потерял карточку</strong>
+          <p>Попроси назвать своё имя или код BL-XXXXX. По любому из них можно найти баланс через ручной ввод в приложении.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-dot">?</div>
+        <div class="step-body">
+          <strong>Провёл неправильную сумму — что делать?</strong>
+          <p>Не пытайся отменить действие самостоятельно. Вместо этого просто введи корректную сумму ещё раз — она проведётся отдельно. После этого напиши маркетологу сообщение по шаблону:</p>
+          <span class="url-chip" style="font-family:inherit;margin-top:10px;display:block;line-height:1.6;">Имя блогера, дата/время визита, ошибочно ввели сумму, нужно удалить</span>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-dot">?</div>
+        <div class="step-body">
+          <strong>Нет интернета — приложение не загружается</strong>
+          <p>Приложение требует подключение к интернету. Попроси блогера подождать или запиши данные (имя, код, сумму) вручную и проведи операцию позже, когда интернет восстановится. Сообщи администратору.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <p style="font-size:13px;color:var(--muted);text-align:center;line-height:1.7;">
+    Вопросы по работе системы — к администратору.<br>
+    Технические проблемы с сайтом — в маркетинг.
+  </p>
+
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <p><strong>Salateira</strong> · Инструкция для сотрудников</p>
+  <p>salateira.by · 2026</p>
+</div>
+
+</body>
+</html>
