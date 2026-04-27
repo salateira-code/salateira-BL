@@ -286,7 +286,7 @@ html,body{width:100%;min-height:100dvh;overflow-x:hidden;
     <div class="ab-row1">
       <div class="ab-logo">S</div>
       <div class="ab-titles">
-        <div class="ab-title">Salateira <span style="font-size:12px;font-weight:600;opacity:.55;letter-spacing:0;">v2.0</span></div>
+        <div class="ab-title">Salateira <span style="font-size:12px;font-weight:600;opacity:.55;letter-spacing:0;">v2.4</span></div>
         <div id="ab-rest" class="ab-rest" style="display:none"></div>
       </div>
     </div>
@@ -523,27 +523,38 @@ function showScreen(id) {
 
 // ── Загрузка ─────────────────────────────────────
 api({ action: 'getData' }).then(function(data) {
-  ALL    = data.people;
-  PROMOS = data.promos || [];
-  var mo=['Январь','Февраль','Март','Апрель','Май','Июнь',
-          'Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
-  if (presetRest) {
-    var el=document.getElementById('ab-rest');
-    el.textContent=presetRest; el.style.display='inline-block';
+  try {
+    ALL    = (data && data.people)  ? data.people  : [];
+    PROMOS = (data && data.promos)  ? data.promos  : [];
+    var mo = ['Январь','Февраль','Март','Апрель','Май','Июнь',
+              'Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+    var month = (data && data.month) ? data.month : 1;
+    var year  = (data && data.year)  ? data.year  : '';
+    if (presetRest) {
+      var el = document.getElementById('ab-rest');
+      el.textContent = presetRest; el.style.display = 'inline-block';
+    }
+    var hdr = mo[month - 1] + ' ' + year + '  ·  ' + ALL.length + ' человек';
+    if (PROMOS.length) hdr += ', ' + PROMOS.length + ' промокодов';
+    document.getElementById('sec-hdr').textContent = hdr;
+    draw(ALL, PROMOS);
+  } catch(e) {
+    console.error('getData error:', e);
+    document.getElementById('sec-hdr').textContent = 'Ошибка отображения';
+    document.getElementById('list').innerHTML = '<div class="empty" style="color:var(--R)">Ошибка: ' + e.message + '</div>';
   }
-  var total = ALL.length + PROMOS.length;
-  document.getElementById('sec-hdr').textContent=
-    mo[data.month-1]+' '+data.year+'  ·  '+ALL.length+' человек, '+PROMOS.length+' промокодов';
-  draw(ALL, PROMOS);
-}).catch(function() {
-  document.getElementById('sec-hdr').textContent='Ошибка загрузки';
-  document.getElementById('list').innerHTML='<div class="empty" style="color:var(--R)">Проверьте API_URL и соединение</div>';
+}).catch(function(e) {
+  console.error('fetch error:', e);
+  document.getElementById('sec-hdr').textContent = 'Ошибка загрузки';
+  document.getElementById('list').innerHTML = '<div class="empty" style="color:var(--R)">Проверьте API_URL и соединение</div>';
 });
 
 // ── Рендер ───────────────────────────────────────
 function draw(arr, promos) {
+  arr = arr || [];
+  promos = promos || [];
   var wrap = document.getElementById('list');
-  var promoList = promos || PROMOS;
+  var promoList = promos.length ? promos : PROMOS;
   var html = '';
 
   // Секции людей по категориям
@@ -904,7 +915,9 @@ function closePromo() { curPromo=null; showScreen('scr-main'); }
 function closePromoOk() {
   curPromo=null;
   showScreen('scr-main');
-  api({action:'getData'}).then(function(d){ ALL=d.people; PROMOS=d.promos||[]; draw(ALL,PROMOS); });
+  api({action:'getData'}).then(function(d){
+    ALL=((d&&d.people)?d.people:[]); PROMOS=((d&&d.promos)?d.promos:[]); draw(ALL,PROMOS);
+  }).catch(function(){});
 }
 
 // ── Навигация ─────────────────────────────────────
@@ -913,7 +926,9 @@ function home(){
   cur=null;
   document.getElementById('btn-rec').textContent='Записать визит';
   showScreen('scr-main');
-  api({action:'getData'}).then(function(d){ ALL=d.people; PROMOS=d.promos||[]; draw(ALL,PROMOS); });
+  api({action:'getData'}).then(function(d){
+    ALL=((d&&d.people)?d.people:[]); PROMOS=((d&&d.promos)?d.promos:[]); draw(ALL,PROMOS);
+  }).catch(function(){});
 }
 </script>
 </body>
