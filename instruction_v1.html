@@ -16,6 +16,9 @@
     --white: #ffffff;
     --border: #dceedd;
     --warn: #ff6b35;
+    --purple: #7c3aed;
+    --purple-light: #ede9fe;
+    --purple-border: #ddd6fe;
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -97,6 +100,8 @@
     flex-shrink: 0;
   }
 
+  .section-num.purple { background: var(--purple); }
+
   .section-title h2 {
     font-size: 22px;
     font-weight: 700;
@@ -112,12 +117,20 @@
     overflow: hidden;
   }
 
+  .card.purple-card {
+    border-color: var(--purple-border);
+  }
+
   /* ── STEPS ────────────────────────────────── */
   .step {
     display: flex;
     gap: 20px;
     padding: 22px 28px;
     border-bottom: 1.5px solid var(--border);
+  }
+
+  .card.purple-card .step {
+    border-bottom-color: var(--purple-border);
   }
 
   .step:last-child {
@@ -137,6 +150,11 @@
     justify-content: center;
     flex-shrink: 0;
     margin-top: 1px;
+  }
+
+  .step-dot.purple {
+    background: var(--purple-light);
+    color: var(--purple);
   }
 
   .step-body {
@@ -171,6 +189,33 @@
     letter-spacing: 0.2px;
   }
 
+  /* ── PROMO BANNER ────────────────────────── */
+  .promo-banner {
+    background: linear-gradient(135deg, #7c3aed 0%, #9f67f5 100%);
+    border-radius: 16px;
+    padding: 22px 28px;
+    margin-bottom: 18px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+  }
+  .promo-banner-icon {
+    font-size: 36px;
+    flex-shrink: 0;
+  }
+  .promo-banner-text strong {
+    display: block;
+    font-size: 16px;
+    font-weight: 700;
+    color: white;
+    margin-bottom: 4px;
+  }
+  .promo-banner-text p {
+    font-size: 13.5px;
+    color: rgba(255,255,255,0.8);
+    line-height: 1.5;
+  }
+
   /* ── ALERT BOX ───────────────────────────── */
   .alert {
     display: flex;
@@ -189,6 +234,11 @@
   .alert.info {
     background: #f0faf2;
     border: 1.5px solid #c3e8cc;
+  }
+
+  .alert.purple-alert {
+    background: #faf5ff;
+    border: 1.5px solid var(--purple-border);
   }
 
   .alert-icon {
@@ -274,11 +324,10 @@
   /* ── PRINT ────────────────────────────────── */
   @media print {
     body { background: white; }
-    .header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .footer { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .section-num { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .step-dot { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-    .header-badge { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .header, .footer, .section-num, .step-dot, .header-badge, .promo-banner {
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
   }
 
   @media (max-width: 600px) {
@@ -288,6 +337,7 @@
     .footer { flex-direction: column; gap: 8px; padding: 24px; }
     .step { padding: 18px 20px; }
     .header-left h1 { font-size: 26px; }
+    .promo-banner { flex-direction: column; gap: 10px; }
   }
 </style>
 </head>
@@ -297,7 +347,7 @@
 <div class="header">
   <div class="header-left">
     <h1>Карты блогеров<br>— как с ними работать</h1>
-    <p class="sub">Инструкция для сотрудников · Salateira 2026</p>
+    <p class="sub">Инструкция для сотрудников v2.5 · Salateira 2026</p>
   </div>
   <div class="header-badge">Только для персонала</div>
 </div>
@@ -427,10 +477,73 @@
     </div>
   </div>
 
-  <!-- ── 4. ЕСЛИ КОД НЕ ЧИТАЕТСЯ ──────────────────── -->
+  <!-- ── 4. ПРОМОКОДЫ (ВЫБАЧЭНЬКИ) ────────────────── -->
   <div class="section">
     <div class="section-title">
-      <div class="section-num">4</div>
+      <div class="section-num purple">4</div>
+      <h2>Как принимать выбачэньки</h2>
+    </div>
+
+    <div class="promo-banner">
+      <div class="promo-banner-icon">🎁</div>
+      <div class="promo-banner-text">
+        <strong>Выбачэнька — это наше извинение перед гостем</strong>
+        <p>Гость получил выбачэньку и пришёл её использовать. Она даёт право на конкретный подарок — например, бесплатное блюдо. Выбачэнька погашается только через сканирование QR.</p>
+      </div>
+    </div>
+
+    <div class="card purple-card">
+      <div class="step">
+        <div class="step-dot purple">1</div>
+        <div class="step-body">
+          <strong>Гость показывает QR-код выбачэньки</strong>
+          <p>Он выглядит иначе, чем карта блогера. Попроси гостя показать QR — и сразу сканируй.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-dot purple">2</div>
+        <div class="step-body">
+          <strong>Отсканируй код в приложении</strong>
+          <p>Открой приложение → нажми «Сканировать QR» → наведи камеру на QR-код гостя. Приложение автоматически откроет экран выбачэньки.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-dot purple">3</div>
+        <div class="step-body">
+          <strong>Проверь экран выбачэньки</strong>
+          <p>На экране появится описание подарка. Убедись, что статус <strong style="color:var(--purple);">«Активен»</strong>. Как правило, выбачэньки можно использовать только 1 раз.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-dot purple">4</div>
+        <div class="step-body">
+          <strong>Нажми «Погасить выбачэньку»</strong>
+          <p>Выбачэнька будет погашена. Выдай гостю именно тот подарок, который написан в описании. Операция автоматически фиксируется в системе.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="alert warn">
+      <div class="alert-icon">⚠️</div>
+      <div class="alert-body">
+        <strong>Выбачэнька принимается только через QR-сканирование</strong>
+        <p>Найти выбачэньку по имени или ввести код вручную невозможно — только через сканирование QR. Если QR не читается — запиши номер кода под QR и позвони маркетологу.</p>
+      </div>
+    </div>
+
+    <div class="alert purple-alert">
+      <div class="alert-icon">🚫</div>
+      <div class="alert-body">
+        <strong>Если выбачэнька уже использована — подарок не выдаётся</strong>
+        <p>Кнопки «Погасить» не будет. Вежливо объясни гостю, что выбачэнька уже была использована, и предложи обратиться к нам.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── 5. ЕСЛИ КОД НЕ ЧИТАЕТСЯ ──────────────────── -->
+  <div class="section">
+    <div class="section-title">
+      <div class="section-num">5</div>
       <h2>Если QR-код не сканируется</h2>
     </div>
 
@@ -438,30 +551,30 @@
       <div class="mini-card">
         <span class="emoji">🔢</span>
         <strong>Введи код вручную</strong>
-        <p>Под QR-кодом на карточке есть номер вида <strong>BL-01519</strong>. Нажми «Ввести код вручную» в приложении и введи его.</p>
+        <p>Под QR-кодом на карточке блогера есть номер вида <strong>BL-01519</strong>. Нажми «Ввести код вручную» в приложении и введи его. <em>Для выбачэнек ручной ввод недоступен.</em></p>
       </div>
       <div class="mini-card">
         <span class="emoji">🔤</span>
         <strong>Введи имя и фамилию</strong>
-        <p>Поиск работает также по имени. Введи фамилию или имя блогера — система найдёт его карточку.</p>
+        <p>Поиск работает по имени для блогеров. Введи фамилию или имя — система найдёт карточку. <em>Для выбачэнек поиск по имени не работает.</em></p>
       </div>
       <div class="mini-card">
-        <span class="emoji">📏</span>
-        <strong>Измени расстояние и яркость</strong>
-        <p>Оптимальное расстояние — 10–20 см. Попроси поднять яркость экрана на телефоне блогера до максимума.</p>
+        <span class="emoji">📞</span>
+        <strong>Запиши номер и позвони маркетологу</strong>
+        <p>Если QR не читается — запиши номер кода под QR (например, SC-001 или BL-012) и позвони маркетологу для решения вопроса.</p>
       </div>
       <div class="mini-card">
-        <span class="emoji">🧹</span>
-        <strong>Протри объектив и перезагрузи</strong>
-        <p>Загрязнённый объектив — частая причина. Протри камеру тканью. Если не помогло — обнови страницу в браузере.</p>
+        <span class="emoji">🔄</span>
+        <strong>Обнови страницу</strong>
+        <p>Закрой приложение полностью и открой снова. Если не помогло — обнови Chrome и попробуй ещё раз.</p>
       </div>
     </div>
   </div>
 
-  <!-- ── 5. ЧАСТЫЕ ВОПРОСЫ ─────────────────────────── -->
+  <!-- ── 6. ЧАСТЫЕ ВОПРОСЫ ─────────────────────────── -->
   <div class="section">
     <div class="section-title">
-      <div class="section-num">5</div>
+      <div class="section-num">6</div>
       <h2>Частые вопросы</h2>
     </div>
     <div class="card">
@@ -483,8 +596,15 @@
       <div class="step">
         <div class="step-dot">?</div>
         <div class="step-body">
+          <strong>Погасил выбачэньку, но подарок не выдали — что делать?</strong>
+          <p>Выбачэнька уже погашена в системе. Если подарок не был выдан — сразу напиши маркетологу с указанием кода и времени операции.</p>
+        </div>
+      </div>
+      <div class="step">
+        <div class="step-dot">?</div>
+        <div class="step-body">
           <strong>Нет интернета — приложение не загружается</strong>
-          <p>Приложение требует подключение к интернету. Попроси блогера подождать или запиши данные (имя, код, сумму) вручную и проведи операцию позже, когда интернет восстановится. Сообщи администратору.</p>
+          <p>Приложение требует подключение к интернету. Попроси гостя подождать или запиши данные (имя, код, сумму) вручную и проведи операцию позже. Сообщи администратору.</p>
         </div>
       </div>
     </div>
@@ -501,7 +621,7 @@
 
 <!-- FOOTER -->
 <div class="footer">
-  <p><strong>Salateira</strong> · Инструкция для сотрудников</p>
+  <p><strong>Salateira</strong> · Инструкция для сотрудников v2.5</p>
   <p>salateira.by · 2026</p>
 </div>
 
