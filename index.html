@@ -286,7 +286,7 @@ html,body{width:100%;min-height:100dvh;overflow-x:hidden;
     <div class="ab-row1">
       <div class="ab-logo">S</div>
       <div class="ab-titles">
-        <div class="ab-title">Salateira <span style="font-size:12px;font-weight:600;opacity:.55;letter-spacing:0;">v2.6</span></div>
+        <div class="ab-title">Salateira <span style="font-size:12px;font-weight:600;opacity:.55;letter-spacing:0;">v2.7</span></div>
         <div id="ab-rest" class="ab-rest" style="display:none"></div>
       </div>
     </div>
@@ -492,7 +492,7 @@ html,body{width:100%;min-height:100dvh;overflow-x:hidden;
 // ════════════════════════════════════════════════
 //  ВСТАВЬТЕ СЮДА URL ВАШЕГО APPS SCRIPT
 // ════════════════════════════════════════════════
-var API_URL = 'https://script.google.com/macros/s/AKfycbzMG4ZbKIEW-jX_ZWN4toZwj9U_DQ9pCanyHWUR3WNcZtq5ndA4D5PGympf-uZYvMr-/exec';
+var API_URL = 'ВСТАВЬТЕ_URL_СЮДА';
 
 var urlParams  = new URLSearchParams(window.location.search);
 var presetRest = urlParams.get('restaurant') || '';
@@ -854,7 +854,6 @@ function showPromo(p) {
   document.getElementById('p-code').textContent = p.code;
   document.getElementById('p-desc').textContent = p.desc;
 
-  // Точки использований
   var dots = '';
   for (var i = 0; i < p.maxUses; i++) {
     dots += '<div class="use-dot '+(i < p.used ? 'done' : 'avail')+'"></div>';
@@ -863,21 +862,20 @@ function showPromo(p) {
   document.getElementById('p-uses-lbl').textContent =
     'Использован ' + p.used + ' из ' + p.maxUses + ' раз';
 
-  // Статус — учитываем истечение срока
+  // Статус с учётом срока действия
   var statusEl = document.getElementById('p-status');
-  var statusHtml = '';
+  var sHtml = '';
   if (p.expired) {
-    statusHtml = '<div class="promo-status-bad">⏰ Срок действия истёк</div>';
+    sHtml = '<div class="promo-status-bad">⏰ Срок действия истёк</div>';
   } else if (p.active) {
-    statusHtml = '<div class="promo-status-ok">✅ Активен · осталось ' + p.remaining + '</div>';
+    sHtml = '<div class="promo-status-ok">✅ Активен · осталось ' + p.remaining + '</div>';
   } else {
-    statusHtml = '<div class="promo-status-bad">❌ Полностью использован</div>';
+    sHtml = '<div class="promo-status-bad">❌ Полностью использован</div>';
   }
-  // Срок действия
   if (p.expiryStr) {
-    statusHtml += '<div style="margin-top:10px;font-size:13px;color:var(--M)">Действует до: <strong>' + p.expiryStr + '</strong></div>';
+    sHtml += '<div style="margin-top:10px;font-size:13px;color:var(--M)">Действует до: <strong>' + p.expiryStr + '</strong></div>';
   }
-  statusEl.innerHTML = statusHtml;
+  statusEl.innerHTML = sHtml;
 
   var btn = document.getElementById('btn-redeem');
   var actionEl = document.getElementById('p-action');
