@@ -286,7 +286,7 @@ html,body{width:100%;min-height:100dvh;overflow-x:hidden;
     <div class="ab-row1">
       <div class="ab-logo">S</div>
       <div class="ab-titles">
-        <div class="ab-title">Salateira <span style="font-size:12px;font-weight:600;opacity:.55;letter-spacing:0;">v2.5</span></div>
+        <div class="ab-title">Salateira <span style="font-size:12px;font-weight:600;opacity:.55;letter-spacing:0;">v2.6</span></div>
         <div id="ab-rest" class="ab-rest" style="display:none"></div>
       </div>
     </div>
@@ -312,7 +312,7 @@ html,body{width:100%;min-height:100dvh;overflow-x:hidden;
         <circle cx="11" cy="11" r="7.5" stroke="rgba(255,255,255,.7)" stroke-width="2.5"/>
         <path d="M17 17l4 4" stroke="rgba(255,255,255,.7)" stroke-width="2.5" stroke-linecap="round"/>
       </svg>
-      <input id="q" type="text" placeholder="Поиск по имени или ID..."
+      <input id="q" type="text" placeholder="Имя, ID или промокод..."
              autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
       <button class="ab-clr" id="qclr" onclick="clearQ()">✕</button>
     </div>
@@ -497,7 +497,7 @@ var API_URL = 'https://script.google.com/macros/s/AKfycbzMG4ZbKIEW-jX_ZWN4toZwj9
 var urlParams  = new URLSearchParams(window.location.search);
 var presetRest = urlParams.get('restaurant') || '';
 
-var ALL = [], cur = null, curPromo = null;
+var ALL = [], PROMOS = [], cur = null, curPromo = null;
 var scanStream = null, scanRAF = null, apiScanTimer = null;
 
 // ── Вспомогательные ──────────────────────────────
@@ -523,38 +523,84 @@ function showScreen(id) {
 
 // ── Загрузка ─────────────────────────────────────
 api({ action: 'getData' }).then(function(data) {
-  ALL = data.people;
-  var mo=['Январь','Февраль','Март','Апрель','Май','Июнь',
-          'Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
-  if (presetRest) {
-    var el=document.getElementById('ab-rest');
-    el.textContent=presetRest; el.style.display='inline-block';
+  try {
+    ALL    = (data && data.people)  ? data.people  : [];
+    PROMOS = (data && data.promos)  ? data.promos  : [];
+    var mo = ['Январь','Февраль','Март','Апрель','Май','Июнь',
+              'Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+    var month = (data && data.month) ? data.month : 1;
+    var year  = (data && data.year)  ? data.year  : '';
+    if (presetRest) {
+      var el = document.getElementById('ab-rest');
+      el.textContent = presetRest; el.style.display = 'inline-block';
+    }
+    var hdr = mo[month - 1] + ' ' + year + '  ·  ' + ALL.length + ' человек';
+    if (PROMOS.length) hdr += ', ' + PROMOS.length + ' промокодов';
+    document.getElementById('sec-hdr').textContent = hdr;
+    draw(ALL, PROMOS);
+  } catch(e) {
+    console.error('getData error:', e);
+    document.getElementById('sec-hdr').textContent = 'Ошибка отображения';
+    document.getElementById('list').innerHTML = '<div class="empty" style="color:var(--R)">Ошибка: ' + e.message + '</div>';
   }
-  document.getElementById('sec-hdr').textContent=
-    mo[data.month-1]+' '+data.year+'  ·  '+ALL.length+' человек';
-  draw(ALL);
-}).catch(function() {
-  document.getElementById('sec-hdr').textContent='Ошибка загрузки';
-  document.getElementById('list').innerHTML='<div class="empty" style="color:var(--R)">Проверьте API_URL и соединение</div>';
+}).catch(function(e) {
+  console.error('fetch error:', e);
+  document.getElementById('sec-hdr').textContent = 'Ошибка загрузки';
+  document.getElementById('list').innerHTML = '<div class="empty" style="color:var(--R)">Проверьте API_URL и соединение</div>';
 });
 
 // ── Рендер ───────────────────────────────────────
-function draw(arr) {
+function draw(arr, promos) {
+  arr = arr || [];
+  promos = promos || [];
   var wrap = document.getElementById('list');
-  if (!arr.length) { wrap.innerHTML='<div class="empty">Никого не найдено</div>'; return; }
-  var groups = {};
-  arr.forEach(function(p){ (groups[p.category]=groups[p.category]||[]).push(p); });
-  var order = ['Блогер','Спортсмен','Партнёр'];
-  Object.keys(groups).forEach(function(c){ if(order.indexOf(c)===-1) order.push(c); });
+  var promoList = promos.length ? promos : PROMOS;
   var html = '';
-  order.forEach(function(cat) {
-    if (!groups[cat]) return;
-    var cs = CAT_CSS[cat]||'blogger';
-    html += '<div class="cat-hdr"><span class="cat-pill cat-'+cs+'">'+(CAT_LABEL[cat]||cat)+'</span>'
-          + '<span class="cat-count">'+groups[cat].length+'</span></div>';
-    html += groups[cat].map(rowHTML).join('');
-  });
-  wrap.innerHTML = html;
+
+  // Секции людей по категориям
+  if (arr.length) {
+    var groups = {};
+    arr.forEach(function(p){ (groups[p.category]=groups[p.category]||[]).push(p); });
+    var order = ['Блогер','Спортсмен','Партнёр'];
+    Object.keys(groups).forEach(function(c){ if(order.indexOf(c)===-1) order.push(c); });
+    order.forEach(function(cat) {
+      if (!groups[cat]) return;
+      var cs = CAT_CSS[cat]||'blogger';
+      html += '<div class="cat-hdr"><span class="cat-pill cat-'+cs+'">'+(CAT_LABEL[cat]||cat)+'</span>'
+            + '<span class="cat-count">'+groups[cat].length+'</span></div>';
+      html += groups[cat].map(rowHTML).join('');
+    });
+  } else if (!promoList.length) {
+    wrap.innerHTML='<div class="empty">Никого не найдено</div>'; return;
+  }
+
+  // Секция промокодов внизу
+  if (promoList.length) {
+    html += '<div class="cat-hdr">'
+          + '<span class="cat-pill" style="background:#f3e8ff;color:#7c3aed">🎁 Промокоды</span>'
+          + '<span class="cat-count">'+promoList.length+'</span></div>';
+    html += promoList.map(promoRowHTML).join('');
+  }
+
+  wrap.innerHTML = html || '<div class="empty">Никого не найдено</div>';
+}
+
+function promoRowHTML(p) {
+  var active = p.used < p.maxUses;
+  var bg  = active ? '#f3e8ff' : '#f5f5f5';
+  var col = active ? '#7c3aed' : '#aaa';
+  var badgeBg  = active ? '#ede9fe' : '#eeeeee';
+  var badgeCol = active ? '#7c3aed' : '#999';
+  var badge = active ? (p.maxUses - p.used) + ' из ' + p.maxUses : 'Использован';
+  var sub = p.desc.length > 40 ? p.desc.substring(0,40)+'…' : p.desc;
+  return '<div class="prow" onclick="openPromo(''+esc(p.code)+'')">'
+    + '<div class="pava" style="background:'+bg+';color:'+col+';font-size:22px">🎁</div>'
+    + '<div class="pinfo">'
+    + '<div class="pname" style="color:'+(active?'#111':'#aaa')+'">'+p.code+'</div>'
+    + '<div class="psub">'+sub+'</div>'
+    + '</div>'
+    + '<div class="pbadge" style="background:'+badgeBg+';color:'+badgeCol+'">'+badge+'</div>'
+    + '</div>';
 }
 function rowHTML(p) {
   var cs=CAT_CSS[p.category]||'blogger';
@@ -574,14 +620,21 @@ function rowHTML(p) {
 // ── Поиск ────────────────────────────────────────
 var qEl=document.getElementById('q'), qclr=document.getElementById('qclr');
 qEl.addEventListener('input', function(){
-  var q=this.value.toLowerCase().trim();
-  qclr.classList.toggle('on',!!this.value);
-  var res=q?ALL.filter(function(p){ return p.name.toLowerCase().indexOf(q)!==-1||p.id.toLowerCase().indexOf(q)!==-1; }):ALL;
-  document.getElementById('sec-hdr').textContent=res.length+' из '+ALL.length+' человек';
-  draw(res);
+  var q = this.value.toLowerCase().trim();
+  qclr.classList.toggle('on', !!this.value);
+  var resP = q ? ALL.filter(function(p){
+    return p.name.toLowerCase().indexOf(q)!==-1 || p.id.toLowerCase().indexOf(q)!==-1;
+  }) : ALL;
+  var resPr = q ? PROMOS.filter(function(p){
+    return p.code.toLowerCase().indexOf(q)!==-1 || p.desc.toLowerCase().indexOf(q)!==-1;
+  }) : PROMOS;
+  document.getElementById('sec-hdr').textContent = q
+    ? (resP.length + resPr.length) + ' результатов'
+    : ALL.length+' человек, '+PROMOS.length+' промокодов';
+  draw(resP, resPr);
 });
-function clearQ(){ qEl.value=''; qclr.classList.remove('on'); draw(ALL);
-  document.getElementById('sec-hdr').textContent=ALL.length+' человек'; }
+function clearQ(){ qEl.value=''; qclr.classList.remove('on'); draw(ALL, PROMOS);
+  document.getElementById('sec-hdr').textContent=ALL.length+' человек, '+PROMOS.length+' промокодов'; }
 
 // ══ СКАНЕР ══════════════════════════════════════
 var USE_NATIVE = (typeof BarcodeDetector !== 'undefined');
@@ -810,10 +863,21 @@ function showPromo(p) {
   document.getElementById('p-uses-lbl').textContent =
     'Использован ' + p.used + ' из ' + p.maxUses + ' раз';
 
+  // Статус — учитываем истечение срока
   var statusEl = document.getElementById('p-status');
-  statusEl.innerHTML = p.active
-    ? '<div class="promo-status-ok">✅ Активен · осталось ' + p.remaining + '</div>'
-    : '<div class="promo-status-bad">❌ Полностью использован</div>';
+  var statusHtml = '';
+  if (p.expired) {
+    statusHtml = '<div class="promo-status-bad">⏰ Срок действия истёк</div>';
+  } else if (p.active) {
+    statusHtml = '<div class="promo-status-ok">✅ Активен · осталось ' + p.remaining + '</div>';
+  } else {
+    statusHtml = '<div class="promo-status-bad">❌ Полностью использован</div>';
+  }
+  // Срок действия
+  if (p.expiryStr) {
+    statusHtml += '<div style="margin-top:10px;font-size:13px;color:var(--M)">Действует до: <strong>' + p.expiryStr + '</strong></div>';
+  }
+  statusEl.innerHTML = statusHtml;
 
   var btn = document.getElementById('btn-redeem');
   var actionEl = document.getElementById('p-action');
@@ -862,7 +926,9 @@ function closePromo() { curPromo=null; showScreen('scr-main'); }
 function closePromoOk() {
   curPromo=null;
   showScreen('scr-main');
-  api({action:'getData'}).then(function(d){ ALL=d.people; draw(ALL); });
+  api({action:'getData'}).then(function(d){
+    ALL=((d&&d.people)?d.people:[]); PROMOS=((d&&d.promos)?d.promos:[]); draw(ALL,PROMOS);
+  }).catch(function(){});
 }
 
 // ── Навигация ─────────────────────────────────────
@@ -871,7 +937,9 @@ function home(){
   cur=null;
   document.getElementById('btn-rec').textContent='Записать визит';
   showScreen('scr-main');
-  api({action:'getData'}).then(function(d){ ALL=d.people; draw(ALL); });
+  api({action:'getData'}).then(function(d){
+    ALL=((d&&d.people)?d.people:[]); PROMOS=((d&&d.promos)?d.promos:[]); draw(ALL,PROMOS);
+  }).catch(function(){});
 }
 </script>
 </body>
