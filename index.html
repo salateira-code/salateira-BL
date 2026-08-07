@@ -205,7 +205,7 @@ html,body{width:100%;min-height:100dvh;overflow-x:hidden;background:var(--BG);fo
     <div class="ab-row1">
       <div class="ab-logo">S</div>
       <div class="ab-titles">
-        <div class="ab-title">Salateira <span style="font-size:12px;font-weight:600;opacity:.55;letter-spacing:0;">v3.2</span></div>
+        <div class="ab-title">Salateira <span style="font-size:12px;font-weight:600;opacity:.55;letter-spacing:0;">v3.2.1</span></div>
         <div id="ab-rest" class="ab-rest" style="display:none"></div>
       </div>
     </div>
@@ -362,6 +362,63 @@ html,body{width:100%;min-height:100dvh;overflow-x:hidden;background:var(--BG);fo
     <div class="rr"><span class="rk">Осталось использований</span><span class="rv" id="p-ok-rem"></span></div>
   </div>
   <button class="btn-again" style="background:var(--R)" onclick="closePromoOk()">← Следующий гость</button>
+</div>
+
+<!-- ════ СЕРТИФИКАТ — ДЕТАЛИ ════════════════════ -->
+<div id="scr-gift">
+  <div class="det-back">
+    <button class="back-btn" onclick="closeGift()" style="background:#e8f5ff;color:#1a6fa8;">
+      <svg width="9" height="15" fill="none" viewBox="0 0 9 15"><path d="M8 1L1.5 7.5 8 14" stroke="#1a6fa8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Назад
+    </button>
+    <div class="det-nm">Сертификат</div>
+  </div>
+  <div class="gift-hero">
+    <div class="gift-emoji">🎫</div>
+    <div class="gift-code-lbl">Код</div>
+    <div class="gift-code-val" id="gf-code"></div>
+    <div class="gift-desc" id="gf-desc"></div>
+    <div class="gift-bal-block">
+      <div class="gift-stat">
+        <div class="gift-stat-lbl">Номинал</div>
+        <div class="gift-stat-val" style="color:#555" id="gf-nominal"></div>
+      </div>
+      <div class="gift-stat">
+        <div class="gift-stat-lbl">Остаток</div>
+        <div class="gift-stat-val c-ok" id="gf-balance"></div>
+      </div>
+    </div>
+    <div class="gift-meta" id="gf-meta"></div>
+    <div style="margin-top:14px" id="gf-status"></div>
+  </div>
+  <div class="gift-amt-block" id="gf-amt-block">
+    <div class="amt-lbl">Сумма к списанию</div>
+    <div class="amt-field">
+      <span class="rub">р</span>
+      <input type="text" id="gf-amt" placeholder="0.00" inputmode="decimal" oninput="checkGiftBtn()" onchange="checkGiftBtn()"/>
+    </div>
+    <div class="over-warn" id="gf-warn">⚠️ Сумма больше остатка — спишется весь остаток.</div>
+    <button class="btn-gift-pay" id="btn-gift-pay" disabled>Списать с сертификата</button>
+  </div>
+  <div style="height:calc(24px + var(--pb))"></div>
+</div>
+
+<!-- ════ СЕРТИФИКАТ — УСПЕХ ══════════════════════ -->
+<div id="scr-gift-ok">
+  <div class="ok-ring" style="background:#e8f2fb">
+    <svg width="48" height="48" fill="none" viewBox="0 0 48 48">
+      <path d="M11 25.5l10.5 10.5L37 14" stroke="#1a6fa8" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
+  <div class="ok-h">Списано!</div>
+  <div class="ok-s" id="gf-ok-sub">Сертификат обновлён</div>
+  <div class="receipt">
+    <div class="rr"><span class="rk">Код</span><span class="rv" id="gf-ok-code"></span></div>
+    <div class="rr"><span class="rk">Ресторан</span><span class="rv" id="gf-ok-rest"></span></div>
+    <div class="rr"><span class="rk">Списано</span><span class="rv" id="gf-ok-amount"></span></div>
+    <div class="rr"><span class="rk">Новый остаток</span><span class="rv" id="gf-ok-balance"></span></div>
+  </div>
+  <button class="btn-again" style="background:#1a6fa8" onclick="closeGiftOk()">← Следующий гость</button>
 </div>
 
 <script>
@@ -714,63 +771,6 @@ function closeGift()   { curGift = null; showScreen('scr-main'); }
 function closeGiftOk() { curGift = null; showScreen('scr-main'); api({action:'getData'}).then(function(d){ ALL=d.people; draw(ALL); }); }
 
 </script>
-
-<!-- ════ СЕРТИФИКАТ — ДЕТАЛИ ════════════════════ -->
-<div id="scr-gift">
-  <div class="det-back">
-    <button class="back-btn" onclick="closeGift()" style="background:#e8f5ff;color:#1a6fa8;">
-      <svg width="9" height="15" fill="none" viewBox="0 0 9 15"><path d="M8 1L1.5 7.5 8 14" stroke="#1a6fa8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      Назад
-    </button>
-    <div class="det-nm">Сертификат</div>
-  </div>
-  <div class="gift-hero">
-    <div class="gift-emoji">🎫</div>
-    <div class="gift-code-lbl">Код</div>
-    <div class="gift-code-val" id="gf-code"></div>
-    <div class="gift-desc" id="gf-desc"></div>
-    <div class="gift-bal-block">
-      <div class="gift-stat">
-        <div class="gift-stat-lbl">Номинал</div>
-        <div class="gift-stat-val" style="color:#555" id="gf-nominal"></div>
-      </div>
-      <div class="gift-stat">
-        <div class="gift-stat-lbl">Остаток</div>
-        <div class="gift-stat-val c-ok" id="gf-balance"></div>
-      </div>
-    </div>
-    <div class="gift-meta" id="gf-meta"></div>
-    <div style="margin-top:14px" id="gf-status"></div>
-  </div>
-  <div class="gift-amt-block" id="gf-amt-block">
-    <div class="amt-lbl">Сумма к списанию</div>
-    <div class="amt-field">
-      <span class="rub">р</span>
-      <input type="text" id="gf-amt" placeholder="0.00" inputmode="decimal" oninput="checkGiftBtn()" onchange="checkGiftBtn()"/>
-    </div>
-    <div class="over-warn" id="gf-warn">⚠️ Сумма больше остатка — спишется весь остаток.</div>
-    <button class="btn-gift-pay" id="btn-gift-pay" disabled>Списать с сертификата</button>
-  </div>
-  <div style="height:calc(24px + var(--pb))"></div>
-</div>
-
-<!-- ════ СЕРТИФИКАТ — УСПЕХ ══════════════════════ -->
-<div id="scr-gift-ok">
-  <div class="ok-ring" style="background:#e8f2fb">
-    <svg width="48" height="48" fill="none" viewBox="0 0 48 48">
-      <path d="M11 25.5l10.5 10.5L37 14" stroke="#1a6fa8" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
-  </div>
-  <div class="ok-h">Списано!</div>
-  <div class="ok-s" id="gf-ok-sub">Сертификат обновлён</div>
-  <div class="receipt">
-    <div class="rr"><span class="rk">Код</span><span class="rv" id="gf-ok-code"></span></div>
-    <div class="rr"><span class="rk">Ресторан</span><span class="rv" id="gf-ok-rest"></span></div>
-    <div class="rr"><span class="rk">Списано</span><span class="rv" id="gf-ok-amount"></span></div>
-    <div class="rr"><span class="rk">Новый остаток</span><span class="rv" id="gf-ok-balance"></span></div>
-  </div>
-  <button class="btn-again" style="background:#1a6fa8" onclick="closeGiftOk()">← Следующий гость</button>
-</div>
 
 </body>
 </html>
