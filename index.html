@@ -174,6 +174,28 @@ html,body{width:100%;min-height:100dvh;overflow-x:hidden;background:var(--BG);fo
 #scr-promo-ok.active{display:flex;}
 @media(max-width:480px){.ab-title{font-size:22px;}.ab-search{height:52px;}.ab-search input{font-size:19px;}.scan-btn{padding:20px;margin:0 12px 14px;}.scan-btn-txt h3{font-size:21px;}.prow{padding:18px 14px;margin-bottom:10px;}.pava{width:58px;height:58px;font-size:20px;}.pname{font-size:18px;}.pbadge{font-size:15px;padding:9px 14px;}.hero-ava{width:74px;height:74px;font-size:26px;}.hero-name{font-size:21px;}.s3v{font-size:26px;}.disc-pct{font-size:72px;}.rub{font-size:34px;}.amt-field input{font-size:42px;padding:16px 0;}.btn-rec{padding:22px;font-size:22px;}.btn-again{padding:22px;font-size:21px;}.btn-redeem{padding:22px;font-size:22px;}}
 @media(min-width:600px){body{display:flex;justify-content:center;background:#ddd;}#scr-main{max-width:440px;width:100%;}#scr-detail,#scr-scan,#scr-ok,#scr-promo,#scr-promo-ok{max-width:440px;left:50%;transform:translateX(-50%);}.nf-wrap{display:none;}.nf-wrap.on{display:flex;}}
+
+/* ── Сертификат (GF-) ─────────────────────────── */
+#scr-gift{position:fixed;inset:0;background:var(--BG);z-index:400;display:none;overflow-y:auto;-webkit-overflow-scrolling:touch;}
+.gift-hero{margin:12px 12px 0;background:var(--WH);border-radius:22px;padding:24px 20px;box-shadow:0 1px 4px rgba(0,0,0,.07);text-align:center;}
+.gift-emoji{font-size:56px;margin-bottom:12px;line-height:1;}
+.gift-code-lbl{font-size:12px;font-weight:800;color:var(--M);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;}
+.gift-code-val{font-family:monospace;font-size:22px;font-weight:800;color:var(--T);background:var(--BG);padding:6px 18px;border-radius:10px;display:inline-block;margin-bottom:12px;}
+.gift-desc{font-size:18px;font-weight:600;color:var(--M);margin-bottom:20px;}
+.gift-bal-block{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:16px;}
+.gift-stat{background:var(--BG);border-radius:14px;padding:14px 10px;text-align:center;}
+.gift-stat-lbl{font-size:11px;font-weight:800;color:var(--M);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px;}
+.gift-stat-val{font-size:24px;font-weight:900;}
+.gift-meta{font-size:13px;color:var(--M);margin-top:4px;}
+.gift-status-ok {display:inline-flex;align-items:center;gap:8px;background:var(--GL);color:var(--G);font-size:15px;font-weight:700;padding:8px 18px;border-radius:30px;}
+.gift-status-bad{display:inline-flex;align-items:center;gap:8px;background:var(--RL);color:var(--R);font-size:15px;font-weight:700;padding:8px 18px;border-radius:30px;}
+.gift-amt-block{margin:10px 12px 0;background:var(--WH);border-radius:22px;padding:20px;box-shadow:0 1px 4px rgba(0,0,0,.07);}
+.btn-gift-pay{display:block;width:100%;padding:20px;background:var(--G);color:#fff;border:none;border-radius:18px;font-size:20px;font-weight:900;font-family:inherit;cursor:pointer;letter-spacing:-.4px;}
+.btn-gift-pay:disabled{background:#c8c8cc;}
+.btn-gift-pay:not(:disabled):active{background:var(--GD);transform:scale(.98);}
+#scr-gift-ok{position:fixed;inset:0;background:var(--WH);z-index:600;display:none;flex-direction:column;align-items:center;justify-content:center;padding:32px 20px calc(32px + var(--pb));}
+#scr-gift-ok.active{display:flex;}
+
 </style>
 </head>
 <body>
@@ -183,7 +205,7 @@ html,body{width:100%;min-height:100dvh;overflow-x:hidden;background:var(--BG);fo
     <div class="ab-row1">
       <div class="ab-logo">S</div>
       <div class="ab-titles">
-        <div class="ab-title">Salateira <span style="font-size:12px;font-weight:600;opacity:.55;letter-spacing:0;">v2.8</span></div>
+        <div class="ab-title">Salateira <span style="font-size:12px;font-weight:600;opacity:.55;letter-spacing:0;">v3.0/7-8-2026</span></div>
         <div id="ab-rest" class="ab-rest" style="display:none"></div>
       </div>
     </div>
@@ -360,7 +382,7 @@ var CAT_CSS   = {"\u0411\u043b\u043e\u0433\u0435\u0440":'blogger',"\u0421\u043f\
 var CAT_LABEL = {"\u0411\u043b\u043e\u0433\u0435\u0440":"\u0411\u043b\u043e\u0433\u0435\u0440\u044b","\u0421\u043f\u043e\u0440\u0442\u0441\u043c\u0435\u043d":"\u0421\u043f\u043e\u0440\u0442\u0441\u043c\u0435\u043d\u044b","\u041f\u0430\u0440\u0442\u043d\u0451\u0440":"\u0421\u043e\u0442\u0440\u0443\u0434\u043d\u0438\u043a\u0438 \u043f\u0430\u0440\u0442\u043d\u0451\u0440\u043e\u0432"};
 
 function showScreen(id) {
-  ['scr-main','scr-scan','scr-detail','scr-ok','scr-promo','scr-promo-ok'].forEach(function(s){
+  ['scr-main','scr-scan','scr-detail','scr-ok','scr-promo','scr-promo-ok','scr-gift','scr-gift-ok'].forEach(function(s){
     var el = document.getElementById(s);
     if (!el) return;
     if (s === id) { el.style.display = s==='scr-promo' ? 'block' : 'flex'; el.classList.add('active'); }
@@ -472,6 +494,7 @@ function manualLookup() {
 
 function lookupAndOpen(id) {
   if (/^SC-/i.test(id)) { openPromo(id); return; }
+  if (/^GF-/i.test(id)) { openGift(id); return; }
   var p = ALL.find(function(x){ return x.id.toUpperCase()===id.toUpperCase(); });
   if (p) { openDetail(p.id); return; }
   api({ action:'getPerson', id:id }).then(function(person){
@@ -602,6 +625,147 @@ function home(){
   showScreen('scr-main');
   api({action:'getData'}).then(function(d){ ALL=d.people; draw(ALL); });
 }
+
+// ── Сертификаты (GF-) ─────────────────────────────
+var curGift = null;
+
+function openGift(code) {
+  api({ action: 'getGift', code: code }).then(function(g) {
+    if (!g.found) {
+      document.getElementById('nf-id').textContent = code;
+      document.getElementById('scr-nf').classList.add('on');
+      return;
+    }
+    curGift = g;
+    showGift(g);
+  }).catch(function() { alert('Ошибка загрузки сертификата'); });
+}
+
+function showGift(g) {
+  document.getElementById('gf-code').textContent    = g.code;
+  document.getElementById('gf-desc').textContent    = g.desc;
+  document.getElementById('gf-nominal').textContent = f(g.nominal) + ' р.';
+
+  var balEl = document.getElementById('gf-balance');
+  balEl.textContent = f(g.balance) + ' р.';
+  balEl.className   = 'gift-stat-val ' + (g.balance > 0 ? 'c-ok' : 'c-bad');
+
+  var meta = [];
+  if (g.issuedAt)  meta.push('Выдан: ' + g.issuedAt);
+  if (g.recipient) meta.push('Кому: ' + g.recipient);
+  document.getElementById('gf-meta').textContent = meta.join('  ·  ');
+
+  var stEl = document.getElementById('gf-status');
+  stEl.innerHTML = g.active
+    ? '<div class="gift-status-ok">✅ Активен · остаток ' + f(g.balance) + ' р.</div>'
+    : '<div class="gift-status-bad">❌ Баланс исчерпан</div>';
+
+  var amtBlock = document.getElementById('gf-amt-block');
+  amtBlock.style.display = g.active ? '' : 'none';
+
+  document.getElementById('gf-amt').value = '';
+  document.getElementById('btn-gift-pay').disabled = true;
+  document.getElementById('gf-warn').classList.remove('on');
+
+  showScreen('scr-gift');
+  document.getElementById('scr-gift').scrollTop = 0;
+  if (g.active) setTimeout(function() { document.getElementById('gf-amt').focus(); }, 150);
+}
+
+document.getElementById('gf-amt').addEventListener('input', function() {
+  var a = parseFloat(this.value) || 0;
+  document.getElementById('btn-gift-pay').disabled = !(a > 0);
+  if (curGift) document.getElementById('gf-warn').classList.toggle('on', a > curGift.balance);
+});
+
+document.getElementById('btn-gift-pay').addEventListener('click', function() {
+  if (!curGift || !curGift.active) return;
+  var a   = parseFloat(document.getElementById('gf-amt').value);
+  if (!a) return;
+  // Списываем не больше остатка
+  var toCharge = Math.min(a, curGift.balance);
+
+  var btn = this; btn.disabled = true; btn.textContent = 'Сохраняем...';
+  api({ action: 'redeemGift', code: curGift.code, amount: toCharge, restaurant: presetRest || '' })
+    .then(function(res) {
+      if (!res.success) throw new Error(res.error);
+      document.getElementById('gf-ok-code').textContent    = curGift.code;
+      document.getElementById('gf-ok-rest').textContent    = presetRest || '—';
+      document.getElementById('gf-ok-amount').textContent  = f(toCharge) + ' р.';
+      var balEl = document.getElementById('gf-ok-balance');
+      balEl.textContent = f(res.newBalance) + ' р.';
+      balEl.style.color = res.newBalance > 0 ? 'var(--G)' : 'var(--R)';
+      document.getElementById('gf-ok-sub').textContent = res.exhausted
+        ? 'Баланс исчерпан — изымите сертификат' : 'Остаток: ' + f(res.newBalance) + ' р.';
+      showScreen('scr-gift-ok');
+    })
+    .catch(function(e) {
+      alert('Ошибка: ' + e.message);
+      btn.disabled = false; btn.textContent = 'Списать с сертификата';
+    });
+});
+
+function closeGift()   { curGift = null; showScreen('scr-main'); }
+function closeGiftOk() { curGift = null; showScreen('scr-main'); api({action:'getData'}).then(function(d){ ALL=d.people; draw(ALL); }); }
+
 </script>
+
+<!-- ════ СЕРТИФИКАТ — ДЕТАЛИ ════════════════════ -->
+<div id="scr-gift">
+  <div class="det-back">
+    <button class="back-btn" onclick="closeGift()" style="background:#e8f5ff;color:#1a6fa8;">
+      <svg width="9" height="15" fill="none" viewBox="0 0 9 15"><path d="M8 1L1.5 7.5 8 14" stroke="#1a6fa8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Назад
+    </button>
+    <div class="det-nm">Сертификат</div>
+  </div>
+  <div class="gift-hero">
+    <div class="gift-emoji">🎫</div>
+    <div class="gift-code-lbl">Код</div>
+    <div class="gift-code-val" id="gf-code"></div>
+    <div class="gift-desc" id="gf-desc"></div>
+    <div class="gift-bal-block">
+      <div class="gift-stat">
+        <div class="gift-stat-lbl">Номинал</div>
+        <div class="gift-stat-val" style="color:#555" id="gf-nominal"></div>
+      </div>
+      <div class="gift-stat">
+        <div class="gift-stat-lbl">Остаток</div>
+        <div class="gift-stat-val c-ok" id="gf-balance"></div>
+      </div>
+    </div>
+    <div class="gift-meta" id="gf-meta"></div>
+    <div style="margin-top:14px" id="gf-status"></div>
+  </div>
+  <div class="gift-amt-block" id="gf-amt-block">
+    <div class="amt-lbl">Сумма к списанию</div>
+    <div class="amt-field">
+      <span class="rub">р</span>
+      <input type="number" id="gf-amt" placeholder="0.00" step="0.10" min="0.01" inputmode="decimal"/>
+    </div>
+    <div class="over-warn" id="gf-warn">⚠️ Сумма больше остатка — спишется весь остаток.</div>
+    <button class="btn-gift-pay" id="btn-gift-pay" disabled>Списать с сертификата</button>
+  </div>
+  <div style="height:calc(24px + var(--pb))"></div>
+</div>
+
+<!-- ════ СЕРТИФИКАТ — УСПЕХ ══════════════════════ -->
+<div id="scr-gift-ok">
+  <div class="ok-ring" style="background:#e8f2fb">
+    <svg width="48" height="48" fill="none" viewBox="0 0 48 48">
+      <path d="M11 25.5l10.5 10.5L37 14" stroke="#1a6fa8" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
+  <div class="ok-h">Списано!</div>
+  <div class="ok-s" id="gf-ok-sub">Сертификат обновлён</div>
+  <div class="receipt">
+    <div class="rr"><span class="rk">Код</span><span class="rv" id="gf-ok-code"></span></div>
+    <div class="rr"><span class="rk">Ресторан</span><span class="rv" id="gf-ok-rest"></span></div>
+    <div class="rr"><span class="rk">Списано</span><span class="rv" id="gf-ok-amount"></span></div>
+    <div class="rr"><span class="rk">Новый остаток</span><span class="rv" id="gf-ok-balance"></span></div>
+  </div>
+  <button class="btn-again" style="background:#1a6fa8" onclick="closeGiftOk()">← Следующий гость</button>
+</div>
+
 </body>
 </html>
