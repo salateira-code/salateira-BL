@@ -173,7 +173,7 @@ html,body{width:100%;min-height:100dvh;overflow-x:hidden;background:var(--BG);fo
 #scr-promo-ok{position:fixed;inset:0;background:var(--WH);z-index:600;display:none;flex-direction:column;align-items:center;justify-content:center;padding:32px 20px calc(32px + var(--pb));}
 #scr-promo-ok.active{display:flex;}
 @media(max-width:480px){.ab-title{font-size:22px;}.ab-search{height:52px;}.ab-search input{font-size:19px;}.scan-btn{padding:20px;margin:0 12px 14px;}.scan-btn-txt h3{font-size:21px;}.prow{padding:18px 14px;margin-bottom:10px;}.pava{width:58px;height:58px;font-size:20px;}.pname{font-size:18px;}.pbadge{font-size:15px;padding:9px 14px;}.hero-ava{width:74px;height:74px;font-size:26px;}.hero-name{font-size:21px;}.s3v{font-size:26px;}.disc-pct{font-size:72px;}.rub{font-size:34px;}.amt-field input{font-size:42px;padding:16px 0;}.btn-rec{padding:22px;font-size:22px;}.btn-again{padding:22px;font-size:21px;}.btn-redeem{padding:22px;font-size:22px;}}
-@media(min-width:600px){body{display:flex;justify-content:center;background:#ddd;}#scr-main{max-width:440px;width:100%;}#scr-detail,#scr-scan,#scr-ok,#scr-promo,#scr-promo-ok{max-width:440px;left:50%;transform:translateX(-50%);}.nf-wrap{display:none;}.nf-wrap.on{display:flex;}}
+@media(min-width:600px){body{display:flex;justify-content:center;background:#ddd;}#scr-main{max-width:440px;width:100%;}#scr-detail,#scr-scan,#scr-ok,#scr-promo,#scr-promo-ok,#scr-gift,#scr-gift-ok{max-width:440px;left:50%;transform:translateX(-50%);}.nf-wrap{display:none;}.nf-wrap.on{display:flex;}}
 
 /* ── Сертификат (GF-) ─────────────────────────── */
 #scr-gift{position:fixed;inset:0;background:var(--BG);z-index:400;display:none;overflow-y:auto;-webkit-overflow-scrolling:touch;}
@@ -205,7 +205,7 @@ html,body{width:100%;min-height:100dvh;overflow-x:hidden;background:var(--BG);fo
     <div class="ab-row1">
       <div class="ab-logo">S</div>
       <div class="ab-titles">
-        <div class="ab-title">Salateira <span style="font-size:12px;font-weight:600;opacity:.55;letter-spacing:0;">v3.0/7-8-2026</span></div>
+        <div class="ab-title">Salateira <span style="font-size:12px;font-weight:600;opacity:.55;letter-spacing:0;">v3.1</span></div>
         <div id="ab-rest" class="ab-rest" style="display:none"></div>
       </div>
     </div>
@@ -385,7 +385,7 @@ function showScreen(id) {
   ['scr-main','scr-scan','scr-detail','scr-ok','scr-promo','scr-promo-ok','scr-gift','scr-gift-ok'].forEach(function(s){
     var el = document.getElementById(s);
     if (!el) return;
-    if (s === id) { el.style.display = s==='scr-promo' ? 'block' : 'flex'; el.classList.add('active'); }
+    if (s === id) { el.style.display = (s==='scr-promo' || s==='scr-gift') ? 'block' : 'flex'; el.classList.add('active'); }
     else          { el.style.display = 'none'; el.classList.remove('active'); }
   });
 }
