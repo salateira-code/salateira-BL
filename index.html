@@ -205,7 +205,7 @@ html,body{width:100%;min-height:100dvh;overflow-x:hidden;background:var(--BG);fo
     <div class="ab-row1">
       <div class="ab-logo">S</div>
       <div class="ab-titles">
-        <div class="ab-title">Salateira <span style="font-size:12px;font-weight:600;opacity:.55;letter-spacing:0;">v3.1</span></div>
+        <div class="ab-title">Salateira <span style="font-size:12px;font-weight:600;opacity:.55;letter-spacing:0;">v3.2</span></div>
         <div id="ab-rest" class="ab-rest" style="display:none"></div>
       </div>
     </div>
@@ -672,15 +672,20 @@ function showGift(g) {
   if (g.active) setTimeout(function() { document.getElementById('gf-amt').focus(); }, 150);
 }
 
-document.getElementById('gf-amt').addEventListener('input', function() {
-  var a = parseFloat(this.value) || 0;
+function checkGiftBtn() {
+  var raw = (document.getElementById('gf-amt').value || '').replace(',', '.');
+  var a = parseFloat(raw) || 0;
   document.getElementById('btn-gift-pay').disabled = !(a > 0);
   if (curGift) document.getElementById('gf-warn').classList.toggle('on', a > curGift.balance);
+}
+// Вешаем на все события — iOS Safari капризничает с type=number
+['input','keyup','change'].forEach(function(ev) {
+  document.getElementById('gf-amt').addEventListener(ev, checkGiftBtn);
 });
 
 document.getElementById('btn-gift-pay').addEventListener('click', function() {
   if (!curGift || !curGift.active) return;
-  var a   = parseFloat(document.getElementById('gf-amt').value);
+  var a   = parseFloat((document.getElementById('gf-amt').value || '').replace(',', '.'));
   if (!a) return;
   // Списываем не больше остатка
   var toCharge = Math.min(a, curGift.balance);
@@ -741,7 +746,7 @@ function closeGiftOk() { curGift = null; showScreen('scr-main'); api({action:'ge
     <div class="amt-lbl">Сумма к списанию</div>
     <div class="amt-field">
       <span class="rub">р</span>
-      <input type="number" id="gf-amt" placeholder="0.00" step="0.10" min="0.01" inputmode="decimal"/>
+      <input type="text" id="gf-amt" placeholder="0.00" inputmode="decimal" oninput="checkGiftBtn()" onchange="checkGiftBtn()"/>
     </div>
     <div class="over-warn" id="gf-warn">⚠️ Сумма больше остатка — спишется весь остаток.</div>
     <button class="btn-gift-pay" id="btn-gift-pay" disabled>Списать с сертификата</button>
