@@ -1,9 +1,24 @@
+<!--
+  Salateira · Почтовые отправления (suppliers.html)
+  Версия 1.3
+
+  1.0 — поиск по базе, добавление поставщика, конверт DL
+  1.1 — вкладки (база / разовое письмо / новый поставщик), очередь на печать пачкой
+  1.2 — конверт переоформлен по образцу Белпочты (вёрстка в реальных мм вместо
+        адаптивных cqw-единиц, которые давали хаотично крупный текст на печати),
+        индекс распознаётся из любого места адреса, починены стили полей формы
+  1.3 — конверт больше не печатает разметку (Каму/Куды, линии, рамка индекса) —
+        она уже есть на бланке, печатается только текст; очередь на печать
+        сохраняется в localStorage (переживает закрытие вкладки/перезагрузку
+        на этом же компьютере); добавлены логотип и фавикон
+-->
 <!doctype html>
 <html lang="ru">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Salateira · Почтовые отправления</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%2338B04C'/%3E%3Ctext x='32' y='45' font-family='Arial, Helvetica, sans-serif' font-weight='800' font-size='38' fill='white' text-anchor='middle'%3ES%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
@@ -21,6 +36,13 @@
     --bg:#F4F7F4;
     --red:#DC394B;
     --radius:10px;
+
+    /* Положение текста на конверте (мм) — на бланке уже пропечатаны линии,
+       "Каму"/"Куды" и рамка индекса, мы кладём только сами реквизиты.
+       Если после тестовой печати текст ложится мимо разметки — правьте эти значения. */
+    --sender-top:12mm; --sender-left:8mm;
+    --service-top:9mm; --service-right:8mm;
+    --recipient-top:58mm; --recipient-left:112mm; --recipient-right:8mm;
   }
 
   *{box-sizing:border-box;}
@@ -35,11 +57,12 @@
 
   .app{ max-width:1220px; margin:0 auto; padding:28px 24px 80px; }
 
-  header.top{ display:flex; align-items:center; gap:12px; margin-bottom:22px; }
-  .eyes svg{display:block;}
+  header.top{ display:flex; align-items:center; gap:14px; margin-bottom:22px; }
+  .logo-mark{ height:24px; width:auto; display:block; flex:0 0 auto; }
   header.top h1{ font-size:1.3rem; font-weight:800; margin:0; letter-spacing:-0.01em; }
   header.top .sub{ font-size:0.83rem; color:var(--muted); margin-top:2px; }
   .sync{ margin-left:auto; text-align:right; font-size:0.78rem; color:var(--muted); display:flex; align-items:center; gap:10px; }
+  .version-tag{ font-size:0.7rem; color:var(--muted); background:#EEF2EF; border-radius:999px; padding:3px 9px; }
   .sync button{ border:1px solid var(--line); background:#fff; border-radius:8px; padding:6px 12px; font-size:0.78rem; font-family:inherit; color:var(--ink); cursor:pointer; }
   .sync button:hover{border-color:var(--green);}
 
@@ -92,11 +115,17 @@
   .field label{font-size:0.8rem; color:var(--muted);}
   .field label .req{color:var(--red);}
   .field input, .field select, .field textarea{
-    font-family:inherit; font-size:0.92rem; padding:9px 10px;
+    font-family:inherit; font-size:0.92rem; padding:9px 10px; width:100%;
     border:1.5px solid var(--line); border-radius:7px; outline:none;
+    background:#fff; color:var(--ink);
+    appearance:none; -webkit-appearance:none; -moz-appearance:none;
   }
   .field input:focus, .field select:focus, .field textarea:focus{border-color:var(--green);}
   .field textarea{resize:vertical; min-height:56px;}
+  .field select{
+    background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6'><path d='M0 0l5 6 5-6z' fill='%235E6F63'/></svg>");
+    background-repeat:no-repeat; background-position:right 12px center; padding-right:30px;
+  }
   .form-section{margin-bottom:18px;}
   .form-section h3{ font-size:0.8rem; font-weight:700; color:var(--green-dark); margin:0 0 10px; padding-bottom:6px; border-bottom:1px solid var(--line); }
   .form-footer{ display:flex; align-items:center; gap:12px; margin-top:6px; flex-wrap:wrap; }
@@ -128,27 +157,34 @@
 
   .envelope-wrap{display:flex; flex-direction:column; gap:14px;}
 
-  .envelope-face{ position:relative; container-type:inline-size; font-family:'Manrope', sans-serif; }
-  #envelope.envelope-face{
-    aspect-ratio:220/110; width:100%; max-width:660px; background:var(--paper);
+  /* Конверт вёрстается в реальных мм (220×110), как физический объект,
+     а на экране просто масштабируется через transform — так пропорции
+     текста и полей всегда 1:1 с тем, что уйдёт на печать.
+     На бланке уже пропечатана вся разметка (линии, "Каму"/"Куды", рамка
+     индекса) — здесь только сами реквизиты, без единой лишней линии. */
+  .envelope-preview-wrap{
+    position:relative; width:100%; max-width:680px; overflow:hidden;
     border:1px solid #C9D2CB; border-radius:4px;
     box-shadow:0 1px 3px rgba(0,0,0,.08), 0 8px 24px rgba(20,38,26,.06);
+    background:var(--paper);
   }
+  .envelope-face{ position:relative; font-family:'Manrope', sans-serif; }
+  #envelope.envelope-face{ width:220mm; height:110mm; transform-origin:top left; background:var(--paper); }
 
-  .env-sender{ position:absolute; top:6%; left:6%; max-width:56%; font-size:3.1cqw; line-height:1.4; color:#3E4B41; }
-  .env-sender .brand{ font-weight:800; color:var(--green-dark); font-size:3.5cqw; margin-bottom:2px; }
+  .env-sender{ position:absolute; top:var(--sender-top); left:var(--sender-left); width:100mm; }
+  .sender-line{ font-size:9.5pt; line-height:1.55; color:#233229; }
+  .env-sender .brand-line{ font-weight:800; color:var(--green-dark); font-size:10.5pt; margin-bottom:1mm; }
 
-  .env-service{ position:absolute; top:6%; right:6%; max-width:38%; text-align:right; font-size:2.5cqw; color:#4B5A4F; line-height:1.4; }
-  .env-service .svc-type{ font-weight:700; color:var(--ink); font-size:2.85cqw; margin-bottom:3px; }
+  .env-service{ position:absolute; top:var(--service-top); right:var(--service-right); width:82mm; text-align:right; }
+  .env-service .svc-type{ font-weight:700; color:var(--ink); font-size:9.5pt; margin-bottom:1.5mm; }
+  .env-service .svc-contract{ font-size:8pt; color:#5E6F63; }
 
-  .env-recipient{ position:absolute; left:9%; right:9%; bottom:13%; }
-  .r-row{ display:flex; align-items:baseline; gap:1.4cqw; margin-bottom:0.9cqw; }
-  .r-label{ font-size:2.1cqw; color:var(--green-dark); flex:0 0 auto; }
-  .r-name{ font-weight:700; font-size:4.5cqw; line-height:1.35; }
-  .r-line{ font-size:4.1cqw; line-height:1.35; color:#233229; }
-  .r-index-row{ display:flex; align-items:center; gap:0.9cqw; margin-top:0.5cqw; }
-  .idx-box{ width:5.3cqw; aspect-ratio:1/1; border:0.18cqw solid #2F4A36; border-radius:2px; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:3.9cqw; }
-  .idx-city{ font-size:4.1cqw; margin-left:0.6cqw; }
+  .env-recipient{ position:absolute; top:var(--recipient-top); left:var(--recipient-left); right:var(--recipient-right); }
+  .r-name{ font-weight:700; font-size:12pt; line-height:1.4; margin-bottom:4mm; }
+  .r-line{ font-size:10.5pt; line-height:1.4; color:#233229; margin-bottom:4mm; }
+  .r-index-row{ display:flex; align-items:center; }
+  .idx-digit{ display:inline-block; width:8.5mm; text-align:center; font-weight:700; font-size:11pt; }
+  .idx-city{ font-size:10.5pt; margin-left:2mm; }
 
   .env-actions{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
 
@@ -179,6 +215,7 @@
     body.print-single #envelope{
       position:fixed; top:0; left:0; width:220mm; height:110mm; max-width:none;
       margin:0; box-shadow:none; border:none; background:transparent;
+      transform:none !important;
     }
 
     body.print-batch #print-queue, body.print-batch #print-queue *{visibility:visible;}
@@ -194,17 +231,15 @@
 <div class="app">
 
   <header class="top">
-    <span class="eyes">
-      <svg width="34" height="20" viewBox="0 0 34 20" fill="none">
-        <circle cx="9" cy="10" r="8" fill="#38B04C"/><circle cx="9" cy="10" r="2.6" fill="#fff"/>
-        <circle cx="25" cy="10" r="8" fill="#38B04C"/><circle cx="25" cy="10" r="2.6" fill="#fff"/>
-      </svg>
-    </span>
+    <svg class="logo-mark" viewBox="0 0 1059 188" xmlns="http://www.w3.org/2000/svg" aria-label="Salateira">
+      <path d="M611.586 107.247C617.466 33.8785 734.55 28.51 738.384 107.247C738.384 120.54 732.509 125.577 714.354 126.676H646.098C646.098 153.262 666.549 172.691 697.226 159.397C706.94 153.773 712.564 146.301 717.677 143.037C729.692 135.368 742.162 148.332 734.805 159.397C703.361 206.691 601.105 195.699 611.586 107.247ZM551.401 2.06641C560.578 2.06654 568.017 9.50577 568.017 18.6826V53.4678H583.643C590.138 53.4679 595.403 58.733 595.403 65.2275C595.403 71.722 590.138 76.9872 583.643 76.9873H568.017V149.798C569.105 157.145 571.859 158.706 574.615 159.854C577.938 160.877 582.796 161.464 593.277 158.064C603.758 154.666 616.028 172.892 595.322 182.351C574.615 191.809 533.713 188.997 534.735 153.463L534.804 153.449C534.791 153.181 534.785 152.91 534.785 152.639V76.9873H526.379C519.885 76.9873 514.62 71.7221 514.62 65.2275C514.62 58.733 519.885 53.4678 526.379 53.4678H534.785V18.6826C534.785 9.50569 542.224 2.06641 551.401 2.06641ZM783.589 50.1328C792.766 50.133 800.205 57.5722 800.206 66.749V170.028C800.205 179.205 792.766 186.644 783.589 186.645C774.412 186.645 766.973 179.205 766.973 170.028V66.749C766.973 57.5721 774.412 50.1328 783.589 50.1328ZM850.588 50.1328C859.765 50.1328 867.204 57.5721 867.205 66.749V68.8203C878.771 46.6922 897.178 47.8161 912.415 54.3105C937.723 64.0246 922.128 88.4264 907.045 82.9424C877.779 72.3012 869.743 84.3673 867.205 129.686V170.028C867.204 179.205 859.765 186.645 850.588 186.645C841.412 186.644 833.972 179.205 833.972 170.028V66.749C833.972 57.5722 841.412 50.133 850.588 50.1328ZM336.192 0C345.369 4.01144e-07 352.808 7.4391 352.808 16.6162V170.001C352.808 179.178 345.369 186.617 336.192 186.617C327.015 186.617 319.576 179.178 319.576 170.001V16.6162C319.576 7.4392 327.015 0.000164922 336.192 0ZM172.831 73.6973C186.635 44.8099 284.545 34.5843 284.545 88.5244L286.335 150.134C288.015 158.223 291.666 165.459 291.666 171.097C291.665 188.48 268.44 195.127 255.147 167.518C233.929 182.089 218.846 190.526 190.214 183.879C155.192 171.608 152.38 126.103 190.214 113.321L252.846 99.0059C252.846 62.705 206.065 70.8853 197.628 88.5244C187.358 109.998 160.211 100.105 172.831 73.6973ZM388.629 73.6973C402.434 44.8099 500.344 34.5843 500.344 88.5244L502.134 150.134C503.814 158.223 507.464 165.459 507.464 171.097C507.464 188.48 484.239 195.127 470.946 167.518C449.728 182.089 434.645 190.526 406.013 183.879C370.99 171.608 368.178 126.103 406.013 113.321L468.645 99.0059C468.645 62.705 421.864 70.8853 413.427 88.5244C403.157 109.998 376.01 100.105 388.629 73.6973ZM3.59721 46.8545C3.59721 -7.59644 117.868 -19.6115 134.485 38.9297C139.086 59.8927 110.551 74.4792 101.252 46.8545C92.5596 21.0354 44.7549 17.712 37.3413 46.8545C35.8076 73.186 92.3796 73.4214 112.755 83.4121C152.38 102.841 151.869 151.923 117.869 174.675C85.1468 194.615 9.98783 191.037 0.528848 140.42C-4.1049 115.623 23.0256 107.953 30.6949 128.148C44.7548 159.337 70.0459 163.419 90.771 154.99C108.893 147.62 112.5 117.978 90.771 111.531C35.2011 95.0457 3.59722 93.6373 3.59721 46.8545ZM939.535 73.4414C953.339 44.5541 1051.25 34.3286 1051.25 88.2686L1053.04 149.878C1054.72 157.967 1058.37 165.203 1058.37 170.841C1058.37 188.224 1035.15 194.871 1021.85 167.262C1000.63 181.833 985.55 190.27 956.918 183.623C921.896 171.352 919.084 125.849 956.918 113.066L1019.55 98.75C1019.55 62.4493 972.769 70.6295 964.333 88.2686C954.062 109.742 926.915 99.8493 939.535 73.4414ZM252.846 119.201C232.395 126.615 213.733 128.532 207.086 131.472C193.793 137.351 194.56 154.991 207.086 161.638C223.703 169.051 250.801 157.548 252.846 134.54V119.201ZM468.645 119.201C448.194 126.615 429.532 128.532 422.885 131.472C409.592 137.351 410.359 154.991 422.885 161.638C439.502 169.051 466.6 157.548 468.645 134.54V119.201ZM1019.55 118.945C999.099 126.359 980.438 128.277 973.792 131.217C960.498 137.097 961.265 154.735 973.792 161.382C990.408 168.795 1017.51 157.292 1019.55 134.284V118.945ZM676.775 73.7578C658.369 73.7578 649.166 85.2621 646.098 107.247H706.173C704.128 87.0516 695.692 73.7578 676.775 73.7578ZM783.594 2.06641C792.771 2.06644 800.211 9.50571 800.211 18.6826C800.211 27.8597 792.771 35.2988 783.594 35.2988H783.055C773.878 35.2988 766.439 27.8597 766.439 18.6826C766.439 9.50569 773.878 2.06641 783.055 2.06641H783.594Z" fill="#38B04C"/>
+    </svg>
     <div>
       <h1>Почтовые отправления</h1>
       <div class="sub">Поставщик из базы, разовое письмо или новая карточка — конверт готов к печати</div>
     </div>
     <div class="sync">
+      <span class="version-tag">v1.2</span>
       <span id="sync-time">загрузка…</span>
       <button id="refresh-btn" type="button">Обновить</button>
     </div>
@@ -365,7 +400,9 @@
             </select>
           </div>
 
-          <div id="envelope" class="envelope-face"></div>
+          <div id="envelope-preview-wrap" class="envelope-preview-wrap">
+            <div id="envelope" class="envelope-face"></div>
+          </div>
 
           <div class="env-actions">
             <button class="btn btn-primary" id="print-btn" type="button">Напечатать</button>
@@ -392,22 +429,35 @@
 </div>
 
 <script>
-  // ⚠️ Вставьте сюда URL веб-приложения после развёртывания Code.gs
+  // URL веб-приложения Apps Script (Code.gs)
   const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz8Ux56iFTmixq-lhg_DpaLHFyfPDG1qOlRtSmbM_DfasnOgzrXhBCfCpKslAs7Fe5Q/exec';
 
   const NAME_FIELD = 'Полное название';
   const ADDR_FIELD = 'Почтовый адрес';
   const LEGAL_ADDR_FIELD = 'Юридический адрес';
 
-  const SENDER_HTML =
-    '<div class="env-sender">' +
-      '<div class="brand">ООО «ДаСпадобы»</div>' +
-      '220053, Старовиленский тракт, 87, оф. 202,<br>г. Минск' +
-    '</div>';
+  const MM_TO_PX = 96 / 25.4;
+  const SENDER_LINES = ['ООО «ДаСпадобы»', 'Старовиленский тракт, 87, оф. 202', '220053, г. Минск'];
   const CONTRACT_PHRASE = 'по договору № 585 от 02.06.2022';
 
+  // Очередь на печать хранится в localStorage — если вкладку закрыть
+  // случайно или перезагрузить страницу, накопленный за день список
+  // не пропадёт (но он привязан к этому браузеру/компьютеру, не общий
+  // для всех сотрудников — см. пояснение в чате).
+  const QUEUE_STORAGE_KEY = 'salateira_suppliers_queue_v1';
+  function saveQueueToStorage(){
+    try{ localStorage.setItem(QUEUE_STORAGE_KEY, JSON.stringify(queue)); }
+    catch(e){ console.warn('Не удалось сохранить очередь локально', e); }
+  }
+  function loadQueueFromStorage(){
+    try{
+      const raw = localStorage.getItem(QUEUE_STORAGE_KEY);
+      return raw ? JSON.parse(raw) : [];
+    }catch(e){ return []; }
+  }
+
   let suppliers = [];
-  let queue = [];
+  let queue = loadQueueFromStorage();
   let currentSelection = null; // { name, address, letterType, sourceSupplier }
 
   const searchInput = document.getElementById('search-input');
@@ -415,20 +465,32 @@
   const emptyHint = document.getElementById('empty-hint');
   const syncTime = document.getElementById('sync-time');
   const letterTypeSelect = document.getElementById('letter-type-select');
+  const envelopeEl = document.getElementById('envelope');
+  const envelopeWrapEl = document.getElementById('envelope-preview-wrap');
 
   function escapeHtml(s){
     return (s == null ? '' : s).toString()
       .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
+  // Индекс — любые 6 цифр подряд в адресе, не являющиеся частью более длинного
+  // числа (чтобы случайно не задеть счёт или УНП, если те попадут в строку).
   function parseAddress(raw){
     const text = (raw || '').toString().trim();
-    const m = text.match(/(\d{6})/);
+    const m = text.match(/(?<!\d)(\d{6})(?!\d)/);
     if (!m) return { line: text, index: null, cityAfter: '' };
     const idx = m[1];
     const before = text.slice(0, m.index).replace(/[,\s]+$/, '').trim();
     const after = text.slice(m.index + 6).replace(/^[,\s]+/, '').trim();
     return { line: before, index: idx, cityAfter: after };
+  }
+
+  function senderBlockHTML(){
+    return '<div class="env-sender">' +
+      SENDER_LINES.map(function(line, i){
+        return '<div class="sender-line' + (i === 0 ? ' brand-line' : '') + '">' + escapeHtml(line) + '</div>';
+      }).join('') +
+    '</div>';
   }
 
   function serviceBlockHTML(letterType){
@@ -440,23 +502,33 @@
 
   function recipientBlockHTML(name, address){
     const a = parseAddress(address);
-    let addrHtml;
-    if (a.index){
-      const boxes = a.index.split('').map(function(d){ return '<span class="idx-box">' + d + '</span>'; }).join('');
-      addrHtml = '<div class="r-line">' + escapeHtml(a.line) + '</div>' +
-        '<div class="r-index-row">' + boxes + '<span class="idx-city">' + escapeHtml(a.cityAfter) + '</span></div>';
-    } else {
-      addrHtml = '<div class="r-line">' + escapeHtml(address || '') + '</div>';
-    }
+    const indexBlock = a.index
+      ? '<div class="r-index-row">' +
+          a.index.split('').map(function(d){ return '<span class="idx-digit">' + d + '</span>'; }).join('') +
+          '<span class="idx-city">' + escapeHtml(a.cityAfter) + '</span></div>'
+      : '';
     return '<div class="env-recipient">' +
-      '<div class="r-row"><span class="r-label">Кому</span><span class="r-name">' + escapeHtml(name) + '</span></div>' +
-      '<div class="r-row"><span class="r-label">Куда</span>' + addrHtml + '</div>' +
+      '<div class="r-name">' + escapeHtml(name) + '</div>' +
+      '<div class="r-line">' + escapeHtml(a.line) + '</div>' +
+      indexBlock +
     '</div>';
   }
 
   function envelopeMarkup(data){
-    return SENDER_HTML + serviceBlockHTML(data.letterType) + recipientBlockHTML(data.name, data.address);
+    return senderBlockHTML() + serviceBlockHTML(data.letterType) + recipientBlockHTML(data.name, data.address);
   }
+
+  // Конверт вёрстается в реальных мм; на экране просто масштабируем блок
+  // через transform, чтобы пропорции текста точно совпадали с печатью.
+  function fitEnvelopePreview(){
+    if (!envelopeWrapEl || !envelopeEl) return;
+    const w = envelopeWrapEl.clientWidth;
+    if (!w) return;
+    const scale = w / (220 * MM_TO_PX);
+    envelopeEl.style.transform = 'scale(' + scale + ')';
+    envelopeWrapEl.style.height = (110 * MM_TO_PX * scale) + 'px';
+  }
+  window.addEventListener('resize', fitEnvelopePreview);
 
   function fmtTime(){
     return new Date().toLocaleTimeString('ru-RU', {hour:'2-digit', minute:'2-digit'});
@@ -533,6 +605,7 @@
   function showEnvelopeArea(){
     document.getElementById('stage-empty').style.display = 'none';
     document.getElementById('envelope-area').style.display = 'flex';
+    requestAnimationFrame(fitEnvelopePreview);
   }
 
   function renderCurrentEnvelope(){
@@ -566,8 +639,14 @@
 
   function printSingle(){
     if (!currentSelection) return;
+    const prevTransform = envelopeEl.style.transform;
+    envelopeEl.style.transform = 'none';
     document.body.classList.add('print-single');
-    const cleanup = function(){ document.body.classList.remove('print-single'); window.removeEventListener('afterprint', cleanup); };
+    const cleanup = function(){
+      document.body.classList.remove('print-single');
+      envelopeEl.style.transform = prevTransform;
+      window.removeEventListener('afterprint', cleanup);
+    };
     window.addEventListener('afterprint', cleanup);
     window.print();
   }
@@ -599,7 +678,10 @@
     }).join('');
 
     Array.prototype.forEach.call(list.querySelectorAll('.qi-type'), function(sel){
-      sel.addEventListener('change', function(){ queue[parseInt(sel.dataset.idx,10)].letterType = sel.value; });
+      sel.addEventListener('change', function(){
+        queue[parseInt(sel.dataset.idx,10)].letterType = sel.value;
+        saveQueueToStorage();
+      });
     });
     Array.prototype.forEach.call(list.querySelectorAll('.qi-remove'), function(btn){
       btn.addEventListener('click', function(){
@@ -607,9 +689,14 @@
         renderQueue();
       });
     });
+
+    saveQueueToStorage();
   }
 
-  document.getElementById('queue-clear-btn').addEventListener('click', function(){ queue = []; renderQueue(); });
+  document.getElementById('queue-clear-btn').addEventListener('click', function(){
+    if (queue.length && !confirm('Очистить всю очередь (' + queue.length + ')? Это нельзя отменить.')) return;
+    queue = []; renderQueue();
+  });
   document.getElementById('queue-btn').addEventListener('click', function(){
     if (currentSelection) addToQueue(Object.assign({}, currentSelection));
   });
@@ -727,6 +814,7 @@
 
   setInterval(function(){ loadData(true); }, 120000);
   loadData(false);
+  renderQueue();
 </script>
 
 </body>
