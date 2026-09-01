@@ -11,6 +11,12 @@
         она уже есть на бланке, печатается только текст; очередь на печать
         сохраняется в localStorage (переживает закрытие вкладки/перезагрузку
         на этом же компьютере); добавлены логотип и фавикон
+  1.4 — печать переведена на изолированный #print-root — устранён баг со
+        случайным числом страниц и дублями письма (был из-за visibility:hidden
+        + position:fixed); адрес получателя и отправителя теперь строится из
+        отдельных полей (город/индекс/область/улица) в гарантированном
+        порядке вместо разбора одной строки — старые записи без этих полей
+        по-прежнему работают через прежний разбор индекса как запасной вариант
 -->
 <!doctype html>
 <html lang="ru">
@@ -185,6 +191,7 @@
   .r-index-row{ display:flex; align-items:center; }
   .idx-digit{ display:inline-block; width:8.5mm; text-align:center; font-weight:700; font-size:11pt; }
   .idx-city{ font-size:10.5pt; margin-left:2mm; }
+  .r-region{ font-size:9pt; color:#5E6F63; margin-top:2mm; }
 
   .env-actions{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
 
@@ -234,7 +241,7 @@
       <div class="sub">Поставщик из базы, разовое письмо или новая карточка — конверт готов к печати</div>
     </div>
     <div class="sync">
-      <span class="version-tag">v1.2</span>
+      <span class="version-tag">v1.4</span>
       <span id="sync-time">загрузка…</span>
       <button id="refresh-btn" type="button">Обновить</button>
     </div>
@@ -266,14 +273,26 @@
         <div class="form-grid">
           <div class="field wide">
             <label>Получатель <span class="req">*</span></label>
-            <input type="text" id="guest-name" placeholder="ФИО или название организации">
+            <input type="text" id="guest-name" placeholder="Иванову Ивану Ивановичу">
           </div>
           <div class="field wide">
-            <label>Адрес <span class="req">*</span></label>
-            <input type="text" id="guest-address" placeholder="ул. Примерная, д. 1, 220028 г. Минск">
+            <label>Улица, дом, помещение <span class="req">*</span></label>
+            <input type="text" id="guest-street" placeholder="ул. Маяковского, д. 97, кв. 5">
+          </div>
+          <div class="field">
+            <label>Индекс</label>
+            <input type="text" id="guest-postal" placeholder="220028" maxlength="6">
+          </div>
+          <div class="field">
+            <label>Город</label>
+            <input type="text" id="guest-city" value="Минск">
+          </div>
+          <div class="field wide" id="guest-region-wrap" style="display:none;">
+            <label>Область</label>
+            <input type="text" id="guest-region" placeholder="Заполняется, если город не Минск">
           </div>
         </div>
-        <div class="hint">Индекс подтянется в конверт автоматически, если в адресе есть 6 цифр подряд.</div>
+        <div class="hint">Кому — на первых строчках, улица/дом — следом, индекс и город — последней строкой конверта.</div>
         <div class="form-footer" style="margin-top:14px;">
           <button type="button" class="btn btn-primary" id="guest-preview-btn">Показать конверт</button>
           <button type="button" class="btn btn-secondary" id="guest-queue-btn">Добавить в очередь</button>
@@ -319,10 +338,23 @@
                 <input type="text" name="Юридический адрес">
               </div>
               <div class="field wide">
-                <label>Почтовый адрес <span class="req">*</span></label>
-                <input type="text" name="Почтовый адрес" required placeholder="Для конверта, с индексом: ...220028 г. Минск">
+                <label>Улица, дом, помещение <span class="req">*</span></label>
+                <input type="text" name="Почтовый адрес" required placeholder="ул. Маяковского, д. 97, кв. 5">
+              </div>
+              <div class="field">
+                <label>Индекс</label>
+                <input type="text" name="Индекс" placeholder="220028" maxlength="6">
+              </div>
+              <div class="field">
+                <label>Город</label>
+                <input type="text" name="Город" id="new-city" value="Минск">
+              </div>
+              <div class="field wide" id="new-region-wrap" style="display:none;">
+                <label>Область</label>
+                <input type="text" name="Область" placeholder="Заполняется, если город не Минск">
               </div>
             </div>
+            <div class="hint">Индекс и город нужны, чтобы конверт собрался правильно — без них попробуем распознать их в адресе автоматически, но лучше указать явно.</div>
           </div>
 
           <div class="form-section">
@@ -428,11 +460,14 @@
   const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbz8Ux56iFTmixq-lhg_DpaLHFyfPDG1qOlRtSmbM_DfasnOgzrXhBCfCpKslAs7Fe5Q/exec';
 
   const NAME_FIELD = 'Полное название';
-  const ADDR_FIELD = 'Почтовый адрес';
+  const ADDR_FIELD = 'Почтовый адрес';       // теперь означает "улица, дом, помещение"
   const LEGAL_ADDR_FIELD = 'Юридический адрес';
+  const CITY_FIELD = 'Город';
+  const POSTAL_FIELD = 'Индекс';
+  const REGION_FIELD = 'Область';
 
   const MM_TO_PX = 96 / 25.4;
-  const SENDER_LINES = ['ООО «ДаСпадобы»', 'Старовиленский тракт, 87, оф. 202', '220053, г. Минск'];
+  const SENDER_LINES = ['ООО «ДаСпадобы»', 'Старовиленский тракт,', 'д. 87, оф. 202', '220053, г. Минск'];
   const CONTRACT_PHRASE = 'по договору № 585 от 02.06.2022';
 
   // Очередь на печать хранится в localStorage — если вкладку закрыть
@@ -453,7 +488,7 @@
 
   let suppliers = [];
   let queue = loadQueueFromStorage();
-  let currentSelection = null; // { name, address, letterType, sourceSupplier }
+  let currentSelection = null; // { name, street, postalCode, city, region, address, letterType }
 
   const searchInput = document.getElementById('search-input');
   const resultsEl = document.getElementById('results');
@@ -468,8 +503,8 @@
       .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
   }
 
-  // Индекс — любые 6 цифр подряд в адресе, не являющиеся частью более длинного
-  // числа (чтобы случайно не задеть счёт или УНП, если те попадут в строку).
+  // Фолбэк для старых записей, где город/индекс ещё не разнесены по своим
+  // полям — вытаскивает индекс (6 цифр подряд) из старой единой строки адреса.
   function parseAddress(raw){
     const text = (raw || '').toString().trim();
     const m = text.match(/(?<!\d)(\d{6})(?!\d)/);
@@ -478,6 +513,23 @@
     const before = text.slice(0, m.index).replace(/[,\s]+$/, '').trim();
     const after = text.slice(m.index + 6).replace(/^[,\s]+/, '').trim();
     return { line: before, index: idx, cityAfter: after };
+  }
+
+  // Если город/индекс заполнены явными полями — используем их напрямую
+  // (порядок гарантирован). Если нет — падаем обратно на разбор старой
+  // единой строки адреса, как раньше.
+  function resolveAddressParts(item){
+    const hasStructured = (item.postalCode && item.postalCode.trim()) || (item.city && item.city.trim());
+    if (hasStructured){
+      return {
+        street: (item.street || '').trim(),
+        index: (item.postalCode || '').trim(),
+        city: (item.city || '').trim(),
+        region: (item.region || '').trim()
+      };
+    }
+    const a = parseAddress(item.address || item.street || '');
+    return { street: a.line, index: a.index || '', city: a.cityAfter || '', region: '' };
   }
 
   function senderBlockHTML(){
@@ -495,22 +547,29 @@
     '</div>';
   }
 
-  function recipientBlockHTML(name, address){
-    const a = parseAddress(address);
-    const indexBlock = a.index
+  // Структура получателя всегда одна: Кому — первые строки, улица/дом —
+  // следом, индекс+город — предпоследней строкой, область (если не Минск) —
+  // последней, необязательной.
+  function recipientBlockHTML(item){
+    const p = resolveAddressParts(item);
+    const indexBlock = p.index
       ? '<div class="r-index-row">' +
-          a.index.split('').map(function(d){ return '<span class="idx-digit">' + d + '</span>'; }).join('') +
-          '<span class="idx-city">' + escapeHtml(a.cityAfter) + '</span></div>'
+          p.index.split('').map(function(d){ return '<span class="idx-digit">' + d + '</span>'; }).join('') +
+          '<span class="idx-city">' + escapeHtml(p.city) + '</span></div>'
+      : (p.city ? '<div class="r-line">' + escapeHtml(p.city) + '</div>' : '');
+    const regionBlock = (p.region && p.city.toLowerCase() !== 'минск')
+      ? '<div class="r-region">' + escapeHtml(p.region) + '</div>'
       : '';
     return '<div class="env-recipient">' +
-      '<div class="r-name">' + escapeHtml(name) + '</div>' +
-      '<div class="r-line">' + escapeHtml(a.line) + '</div>' +
+      '<div class="r-name">' + escapeHtml(item.name) + '</div>' +
+      '<div class="r-line">' + escapeHtml(p.street) + '</div>' +
       indexBlock +
+      regionBlock +
     '</div>';
   }
 
   function envelopeMarkup(data){
-    return senderBlockHTML() + serviceBlockHTML(data.letterType) + recipientBlockHTML(data.name, data.address);
+    return senderBlockHTML() + serviceBlockHTML(data.letterType) + recipientBlockHTML(data);
   }
 
   // Конверт вёрстается в реальных мм; на экране просто масштабируем блок
@@ -612,7 +671,11 @@
   function selectSupplier(s){
     currentSelection = {
       name: s[NAME_FIELD] || '',
-      address: s[ADDR_FIELD] || s[LEGAL_ADDR_FIELD] || '',
+      street: s[ADDR_FIELD] || '',
+      postalCode: s[POSTAL_FIELD] || '',
+      city: s[CITY_FIELD] || '',
+      region: s[REGION_FIELD] || '',
+      address: s[ADDR_FIELD] || s[LEGAL_ADDR_FIELD] || '', // фолбэк для старых записей без разнесённых полей
       letterType: letterTypeSelect.value,
       sourceSupplier: s
     };
@@ -622,7 +685,8 @@
     const fields = [
       ['ID', s['ID поставщика']], ['Статус', s['Статус']], ['УНП', s['УНП']],
       ['Категория', s['Категория']], ['Куратор', s['Куратор']],
-      ['Контакт', s['Контактное лицо']], ['Телефон', s['Телефон']], ['Email', s['Email']]
+      ['Контакт', s['Контактное лицо']], ['Телефон', s['Телефон']], ['Email', s['Email']],
+      ['Город', s[CITY_FIELD]], ['Индекс', s[POSTAL_FIELD]]
     ];
     document.getElementById('detail-card').innerHTML = fields
       .filter(function(f){ return f[1]; })
@@ -669,8 +733,8 @@
     panel.classList.toggle('has-items', queue.length > 0);
 
     list.innerHTML = queue.map(function(item, i){
-      const addr = parseAddress(item.address);
-      const shortAddr = addr.line + (addr.index ? (', ' + addr.index + (addr.cityAfter ? ' ' + addr.cityAfter : '')) : '');
+      const p = resolveAddressParts(item);
+      const shortAddr = p.street + (p.index ? (', ' + p.index + (p.city ? ' ' + p.city : '')) : (p.city || ''));
       const options = ['Простое','Заказное с простым уведомлением','Заказное с заказным уведомлением']
         .map(function(t){ return '<option' + (t === item.letterType ? ' selected' : '') + '>' + t + '</option>'; }).join('');
       return '<div class="queue-item">' +
@@ -720,14 +784,19 @@
 
   // --- guest / one-off mode ---
   function guestSelection(){
-    const name = document.getElementById('guest-name').value.trim();
-    const address = document.getElementById('guest-address').value.trim();
-    return { name: name, address: address, letterType: letterTypeSelect.value };
+    return {
+      name: document.getElementById('guest-name').value.trim(),
+      street: document.getElementById('guest-street').value.trim(),
+      postalCode: document.getElementById('guest-postal').value.trim(),
+      city: document.getElementById('guest-city').value.trim(),
+      region: document.getElementById('guest-region').value.trim(),
+      letterType: letterTypeSelect.value
+    };
   }
 
   document.getElementById('guest-preview-btn').addEventListener('click', function(){
     const g = guestSelection();
-    if (!g.name || !g.address){ alert('Заполните получателя и адрес.'); return; }
+    if (!g.name || !g.street){ alert('Заполните получателя и улицу/дом.'); return; }
     currentSelection = g;
     showEnvelopeArea();
     renderCurrentEnvelope();
@@ -736,7 +805,7 @@
 
   document.getElementById('guest-queue-btn').addEventListener('click', function(){
     const g = guestSelection();
-    if (!g.name || !g.address){ alert('Заполните получателя и адрес.'); return; }
+    if (!g.name || !g.street){ alert('Заполните получателя и улицу/дом.'); return; }
     addToQueue(g);
   });
 
@@ -797,6 +866,19 @@
   }
 
   addForm.addEventListener('submit', function(e){ e.preventDefault(); submitForm(false); });
+
+  // Поле "Область" нужно только если город не Минск — прячем его по умолчанию.
+  function wireRegionToggle(cityInput, regionWrap){
+    if (!cityInput || !regionWrap) return;
+    function update(){
+      const v = (cityInput.value || '').trim().toLowerCase();
+      regionWrap.style.display = (v === '' || v === 'минск') ? 'none' : '';
+    }
+    cityInput.addEventListener('input', update);
+    update();
+  }
+  wireRegionToggle(document.getElementById('new-city'), document.getElementById('new-region-wrap'));
+  wireRegionToggle(document.getElementById('guest-city'), document.getElementById('guest-region-wrap'));
 
   setInterval(function(){ loadData(true); }, 120000);
   loadData(false);
