@@ -1,4 +1,4 @@
-ё<!--
+<!--
   Salateira · Почтовые отправления (suppliers.html)
   Версия 1.3
 
@@ -208,25 +208,20 @@
   .queue-item .qi-remove:hover{color:var(--red);}
   .queue-actions{display:flex; gap:10px;}
 
+  #print-root{ display:none; }
+
   @media print{
-    body *{visibility:hidden;}
-
-    body.print-single #envelope, body.print-single #envelope *{visibility:visible;}
-    body.print-single #envelope{
-      position:fixed; top:0; left:0; width:220mm; height:110mm; max-width:none;
-      margin:0; box-shadow:none; border:none; background:transparent;
-      transform:none !important;
-    }
-
-    body.print-batch #print-queue, body.print-batch #print-queue *{visibility:visible;}
-    body.print-batch #print-queue{ position:absolute; top:0; left:0; }
-    body.print-batch .envelope-page{ width:220mm; height:110mm; page-break-after:always; background:transparent; }
-
+    .app{ display:none; }
+    #print-root{ display:block; }
+    #print-root .envelope-page{ width:220mm; height:110mm; background:transparent; }
+    #print-root .envelope-page:not(:last-child){ page-break-after:always; }
     @page{ size:220mm 110mm; margin:0; }
   }
 </style>
 </head>
 <body>
+
+<div id="print-root" aria-hidden="true"></div>
 
 <div class="app">
 
@@ -637,20 +632,28 @@
 
   letterTypeSelect.addEventListener('change', renderCurrentEnvelope);
 
-  function printSingle(){
-    if (!currentSelection) return;
-    const prevTransform = envelopeEl.style.transform;
-    envelopeEl.style.transform = 'none';
-    document.body.classList.add('print-single');
+  const printRootEl = document.getElementById('print-root');
+
+  // Печатает список конвертов через изолированный #print-root — он не вложен
+  // в остальной интерфейс, поэтому в раскладке не остаётся "невидимого"
+  // контента, из-за которого раньше вылезали случайные пустые страницы
+  // и повторы одного и того же письма.
+  function printItems(items){
+    if (!items || !items.length) return;
+    printRootEl.innerHTML = items.map(function(item){
+      return '<div class="envelope-page envelope-face">' + envelopeMarkup(item) + '</div>';
+    }).join('');
     const cleanup = function(){
-      document.body.classList.remove('print-single');
-      envelopeEl.style.transform = prevTransform;
+      printRootEl.innerHTML = '';
       window.removeEventListener('afterprint', cleanup);
     };
     window.addEventListener('afterprint', cleanup);
     window.print();
   }
-  document.getElementById('print-btn').addEventListener('click', printSingle);
+
+  document.getElementById('print-btn').addEventListener('click', function(){
+    if (currentSelection) printItems([currentSelection]);
+  });
   document.getElementById('refresh-btn').addEventListener('click', function(){ loadData(false); });
 
   // --- queue ---
@@ -702,24 +705,7 @@
   });
 
   document.getElementById('queue-print-btn').addEventListener('click', function(){
-    if (!queue.length) return;
-    const container = document.createElement('div');
-    container.id = 'print-queue';
-    queue.forEach(function(item){
-      const page = document.createElement('div');
-      page.className = 'envelope-page envelope-face';
-      page.innerHTML = envelopeMarkup(item);
-      container.appendChild(page);
-    });
-    document.body.appendChild(container);
-    document.body.classList.add('print-batch');
-    const cleanup = function(){
-      document.body.classList.remove('print-batch');
-      container.remove();
-      window.removeEventListener('afterprint', cleanup);
-    };
-    window.addEventListener('afterprint', cleanup);
-    window.print();
+    printItems(queue);
   });
 
   // --- tabs ---
