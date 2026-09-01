@@ -1,6 +1,6 @@
 <!--
   Salateira · Почтовые отправления (suppliers.html)
-  Версия 1.3
+  Версия 1.6
 
   1.0 — поиск по базе, добавление поставщика, конверт DL
   1.1 — вкладки (база / разовое письмо / новый поставщик), очередь на печать пачкой
@@ -17,6 +17,20 @@
         отдельных полей (город/индекс/область/улица) в гарантированном
         порядке вместо разбора одной строки — старые записи без этих полей
         по-прежнему работают через прежний разбор индекса как запасной вариант
+  1.5 — починен реальный баг пустого конверта: Google Таблица отдаёт числовые
+        ячейки (индекс, УНП) как числа, а не строки, .trim() на них падал и
+        обрывал сборку конверта целиком — теперь везде явное приведение к
+        строке, плюс сборка обёрнута в try/catch с понятным сообщением вместо
+        тихой пустой страницы; добавлен раздел "Каталог поставщиков" —
+        отдельный полноширинный вид всей базы карточками, без необходимости
+        открывать саму Google Таблицу
+  1.6 — редактирование существующих поставщиков прямо из каталога (кнопка
+        "Редактировать" → та же форма, но обновляет строку по ID вместо
+        добавления новой); добавлено поле "Статус" в форму — без него оно
+        тихо затиралось бы пустым при сохранении; Code.gs теперь поддерживает
+        action:'update' с проверкой на дубликаты, исключающей саму
+        редактируемую строку — требуется обновить версию развёртывания
+        (Управление развёртываниями → редактировать → Новая версия)
 -->
 <!doctype html>
 <html lang="ru">
@@ -215,6 +229,26 @@
   .queue-item .qi-remove:hover{color:var(--red);}
   .queue-actions{display:flex; gap:10px;}
 
+  /* --- каталог поставщиков --- */
+  .directory-header{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
+  .dir-search-input{
+    width:100%; font-family:inherit; font-size:0.95rem; padding:11px 14px;
+    border:1.5px solid var(--line); border-radius:8px; outline:none; margin-bottom:16px; background:#fff;
+  }
+  .dir-search-input:focus{border-color:var(--green);}
+  .dir-list{ display:grid; grid-template-columns:repeat(auto-fill, minmax(280px,1fr)); gap:12px; }
+  .dir-card{ border:1px solid var(--line); border-radius:10px; padding:14px 16px; }
+  .dir-card .dc-top{ display:flex; align-items:flex-start; justify-content:space-between; gap:8px; margin-bottom:4px; }
+  .dir-card .dc-name{ font-weight:700; font-size:0.95rem; }
+  .dir-card .dc-status{ font-size:0.7rem; padding:2px 9px; border-radius:999px; background:#EEF7EF; color:var(--green-dark); white-space:nowrap; }
+  .dir-card .dc-status.inactive{ background:#FBEAEC; color:var(--red); }
+  .dir-card .dc-meta{ font-size:0.8rem; color:var(--muted); margin-bottom:8px; }
+  .dir-card .dc-row{ font-size:0.82rem; margin-bottom:2px; }
+  .dir-card .dc-row .dc-label{ color:var(--muted); }
+  .dir-card .dc-actions{ margin-top:10px; }
+  .dir-card .dc-actions button{ font-size:0.8rem; padding:6px 12px; }
+  .dir-empty{ color:var(--muted); font-size:0.9rem; padding:30px; text-align:center; grid-column:1/-1; }
+
   #print-root{ display:none; }
 
   @media print{
@@ -241,19 +275,20 @@
       <div class="sub">Поставщик из базы, разовое письмо или новая карточка — конверт готов к печати</div>
     </div>
     <div class="sync">
-      <span class="version-tag">v1.4</span>
+      <span class="version-tag">v1.6</span>
       <span id="sync-time">загрузка…</span>
       <button id="refresh-btn" type="button">Обновить</button>
     </div>
   </header>
 
   <div class="tabs">
-    <button class="tab-btn active" data-tab="base" type="button">Из базы</button>
-    <button class="tab-btn" data-tab="guest" type="button">Разовое письмо</button>
-    <button class="tab-btn" data-tab="new" type="button">+ Новый поставщик</button>
+    <button class="tab-btn active" data-tab="base" data-view="compose" type="button">Из базы</button>
+    <button class="tab-btn" data-tab="guest" data-view="compose" type="button">Разовое письмо</button>
+    <button class="tab-btn" data-tab="new" data-view="compose" type="button">+ Новый поставщик</button>
+    <button class="tab-btn" data-tab="directory" data-view="directory" type="button">Каталог поставщиков</button>
   </div>
 
-  <div class="layout">
+  <div class="layout" id="compose-view">
 
     <!-- LEFT column -->
     <div>
@@ -301,7 +336,7 @@
 
       <!-- TAB: new supplier -->
       <div class="panel mode-panel" id="tab-new">
-        <h2 class="panel-title">Новый поставщик</h2>
+        <h2 class="panel-title" id="new-form-title">Новый поставщик</h2>
         <div id="dup-banner-slot"></div>
         <form id="add-form">
           <div class="form-section">
@@ -326,6 +361,14 @@
               <div class="field">
                 <label>Куратор</label>
                 <input type="text" name="Куратор" placeholder="Кто ведёт со стороны Salateira">
+              </div>
+              <div class="field">
+                <label>Статус</label>
+                <select name="Статус">
+                  <option>Активный</option>
+                  <option>На паузе</option>
+                  <option>Расторгнут</option>
+                </select>
               </div>
             </div>
           </div>
@@ -405,6 +448,7 @@
 
           <div class="form-footer">
             <button type="submit" class="btn btn-primary" id="submit-btn">Добавить и подготовить конверт</button>
+            <button type="button" class="btn btn-secondary" id="cancel-edit-btn" style="display:none;">Отменить редактирование</button>
             <span class="form-msg" id="form-msg"></span>
           </div>
         </form>
@@ -452,6 +496,17 @@
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- Отдельный полноширинный вид: каталог всех поставщиков — так к нему
+       не нужно открывать саму Google Таблицу, здесь всё видно и читаемо. -->
+  <div class="panel" id="directory-view" style="display:none;">
+    <div class="directory-header">
+      <h2 class="panel-title">Каталог поставщиков</h2>
+      <button class="btn btn-primary" id="dir-add-btn" type="button">+ Добавить поставщика</button>
+    </div>
+    <input type="text" id="dir-search" class="dir-search-input" placeholder="Поиск по названию, категории, куратору…" autocomplete="off">
+    <div class="dir-list" id="dir-list"></div>
   </div>
 </div>
 
@@ -515,18 +570,23 @@
     return { line: before, index: idx, cityAfter: after };
   }
 
+  function toStr(v){ return v == null ? '' : String(v).trim(); }
+  function isMinsk(city){ return toStr(city).toLowerCase().replace(/^г\.?\s*/, '') === 'минск'; }
+
   // Если город/индекс заполнены явными полями — используем их напрямую
   // (порядок гарантирован). Если нет — падаем обратно на разбор старой
   // единой строки адреса, как раньше.
+  // Важно: значения из Google Таблицы для чисто цифровых ячеек (индекс,
+  // УНП) приходят как JS-числа, а не строки — поэтому здесь всё явно
+  // приводится к строке через toStr(), а не вызывается .trim() напрямую.
   function resolveAddressParts(item){
-    const hasStructured = (item.postalCode && item.postalCode.trim()) || (item.city && item.city.trim());
+    const postalCode = toStr(item.postalCode);
+    const city = toStr(item.city);
+    const region = toStr(item.region);
+    const street = toStr(item.street);
+    const hasStructured = postalCode !== '' || city !== '';
     if (hasStructured){
-      return {
-        street: (item.street || '').trim(),
-        index: (item.postalCode || '').trim(),
-        city: (item.city || '').trim(),
-        region: (item.region || '').trim()
-      };
+      return { street: street, index: postalCode, city: city, region: region };
     }
     const a = parseAddress(item.address || item.street || '');
     return { street: a.line, index: a.index || '', city: a.cityAfter || '', region: '' };
@@ -557,7 +617,7 @@
           p.index.split('').map(function(d){ return '<span class="idx-digit">' + d + '</span>'; }).join('') +
           '<span class="idx-city">' + escapeHtml(p.city) + '</span></div>'
       : (p.city ? '<div class="r-line">' + escapeHtml(p.city) + '</div>' : '');
-    const regionBlock = (p.region && p.city.toLowerCase() !== 'минск')
+    const regionBlock = (p.region && !isMinsk(p.city))
       ? '<div class="r-region">' + escapeHtml(p.region) + '</div>'
       : '';
     return '<div class="env-recipient">' +
@@ -601,6 +661,7 @@
       suppliers = data.rows || [];
       syncTime.textContent = 'обновлено в ' + fmtTime();
       renderResults(searchInput.value);
+      if (activeView === 'directory') renderDirectory(document.getElementById('dir-search').value);
     }catch(err){
       syncTime.textContent = 'ошибка загрузки';
       console.error(err);
@@ -665,7 +726,14 @@
   function renderCurrentEnvelope(){
     if (!currentSelection) return;
     currentSelection.letterType = letterTypeSelect.value;
-    document.getElementById('envelope').innerHTML = envelopeMarkup(currentSelection);
+    try{
+      document.getElementById('envelope').innerHTML = envelopeMarkup(currentSelection);
+    }catch(err){
+      console.error('Ошибка сборки конверта', err, currentSelection);
+      document.getElementById('envelope').innerHTML =
+        '<div style="position:absolute; top:8mm; left:8mm; right:8mm; font-size:9pt; color:#DC394B;">' +
+        'Не удалось собрать конверт — проверьте поля этого поставщика (адрес/индекс/город).</div>';
+    }
   }
 
   function selectSupplier(s){
@@ -705,7 +773,13 @@
   function printItems(items){
     if (!items || !items.length) return;
     printRootEl.innerHTML = items.map(function(item){
-      return '<div class="envelope-page envelope-face">' + envelopeMarkup(item) + '</div>';
+      try{
+        return '<div class="envelope-page envelope-face">' + envelopeMarkup(item) + '</div>';
+      }catch(err){
+        console.error('Ошибка сборки конверта при печати', err, item);
+        return '<div class="envelope-page envelope-face"><div style="position:absolute; top:8mm; left:8mm; right:8mm; font-size:9pt; color:#DC394B;">' +
+          'Ошибка данных: ' + escapeHtml(item.name || '') + '</div></div>';
+      }
     }).join('');
     const cleanup = function(){
       printRootEl.innerHTML = '';
@@ -772,13 +846,90 @@
     printItems(queue);
   });
 
-  // --- tabs ---
+  // --- каталог поставщиков ---
+  let activeView = 'compose';
+
+  function renderDirectory(query){
+    const list = document.getElementById('dir-list');
+    const q = (query || '').trim().toLowerCase();
+    const filtered = suppliers.filter(function(s){
+      if (!q) return true;
+      const hay = [s[NAME_FIELD], s['Категория'], s['Куратор'], s['ID поставщика']].join(' ').toLowerCase();
+      return hay.indexOf(q) !== -1;
+    }).slice().sort(function(a, b){
+      return (a[NAME_FIELD] || '').toString().localeCompare((b[NAME_FIELD] || '').toString(), 'ru');
+    });
+
+    if (!filtered.length){
+      list.innerHTML = '<div class="dir-empty">' + (suppliers.length ? 'Ничего не найдено.' : 'База пока пуста.') + '</div>';
+      return;
+    }
+
+    list.innerHTML = filtered.map(function(s){
+      const status = toStr(s['Статус']);
+      const statusClass = (status && status.toLowerCase() !== 'активный') ? ' inactive' : '';
+      const idx = suppliers.indexOf(s);
+      const rows = [
+        ['Адрес', s[ADDR_FIELD] || s[LEGAL_ADDR_FIELD]],
+        ['Контакт', s['Контактное лицо']],
+        ['Телефон', s['Телефон']],
+        ['Email', s['Email']]
+      ].filter(function(r){ return r[1]; });
+      const meta = [s['Категория'], s['Куратор']].filter(Boolean).map(function(v){ return escapeHtml(v); }).join(' · ');
+      return '<div class="dir-card">' +
+        '<div class="dc-top"><div class="dc-name">' + escapeHtml(s[NAME_FIELD] || '(без названия)') + '</div>' +
+        (status ? '<span class="dc-status' + statusClass + '">' + escapeHtml(status) + '</span>' : '') + '</div>' +
+        (meta ? '<div class="dc-meta">' + meta + '</div>' : '') +
+        rows.map(function(r){ return '<div class="dc-row"><span class="dc-label">' + r[0] + ': </span>' + escapeHtml(r[1]) + '</div>'; }).join('') +
+        '<div class="dc-actions">' +
+          '<button type="button" class="btn btn-secondary dir-use-btn" data-idx="' + idx + '">Письмо этому поставщику</button> ' +
+          '<button type="button" class="btn btn-secondary dir-edit-btn" data-idx="' + idx + '">Редактировать</button>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    Array.prototype.forEach.call(list.querySelectorAll('.dir-use-btn'), function(btn){
+      btn.addEventListener('click', function(){
+        const s = suppliers[parseInt(btn.dataset.idx, 10)];
+        switchView('compose');
+        switchTab('base');
+        selectSupplier(s);
+      });
+    });
+    Array.prototype.forEach.call(list.querySelectorAll('.dir-edit-btn'), function(btn){
+      btn.addEventListener('click', function(){
+        const s = suppliers[parseInt(btn.dataset.idx, 10)];
+        switchView('compose');
+        switchTab('new');
+        openEditForm(s);
+      });
+    });
+  }
+
+  document.getElementById('dir-search').addEventListener('input', function(){ renderDirectory(this.value); });
+  document.getElementById('dir-add-btn').addEventListener('click', function(){ switchView('compose'); switchTab('new'); });
+
+  // --- переключение видов и вкладок ---
+  function switchView(view){
+    activeView = view;
+    document.getElementById('compose-view').style.display = (view === 'compose') ? 'grid' : 'none';
+    document.getElementById('directory-view').style.display = (view === 'directory') ? 'block' : 'none';
+    if (view === 'directory') renderDirectory(document.getElementById('dir-search').value);
+  }
+
+  function switchTab(tabName){
+    Array.prototype.forEach.call(document.querySelectorAll('.tab-btn'), function(b){
+      b.classList.toggle('active', b.dataset.tab === tabName);
+    });
+    Array.prototype.forEach.call(document.querySelectorAll('.mode-panel'), function(p){ p.classList.remove('active'); });
+    const panel = document.getElementById('tab-' + tabName);
+    if (panel) panel.classList.add('active');
+  }
+
   Array.prototype.forEach.call(document.querySelectorAll('.tab-btn'), function(btn){
     btn.addEventListener('click', function(){
-      Array.prototype.forEach.call(document.querySelectorAll('.tab-btn'), function(b){ b.classList.remove('active'); });
-      Array.prototype.forEach.call(document.querySelectorAll('.mode-panel'), function(p){ p.classList.remove('active'); });
-      btn.classList.add('active');
-      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+      switchView(btn.dataset.view);
+      switchTab(btn.dataset.tab);
     });
   });
 
@@ -809,16 +960,55 @@
     addToQueue(g);
   });
 
-  // --- add supplier form ---
+  // --- add / edit supplier form ---
   const addForm = document.getElementById('add-form');
   const formMsg = document.getElementById('form-msg');
   const dupSlot = document.getElementById('dup-banner-slot');
+  const formTitle = document.getElementById('new-form-title');
+  const submitBtn = document.getElementById('submit-btn');
+  const cancelEditBtn = document.getElementById('cancel-edit-btn');
+  let editingId = null;
+
+  function fillFormFromSupplier(s){
+    Array.prototype.forEach.call(addForm.elements, function(el){
+      if (!el.name) return;
+      el.value = s[el.name] != null ? s[el.name] : '';
+    });
+  }
+
+  function openEditForm(s){
+    editingId = (s['ID поставщика'] || '').toString();
+    fillFormFromSupplier(s);
+    const cityToggleInput = document.getElementById('new-city');
+    if (cityToggleInput) cityToggleInput.dispatchEvent(new Event('input'));
+    formTitle.textContent = 'Редактировать: ' + (s['Полное название'] || editingId);
+    submitBtn.textContent = 'Сохранить изменения';
+    cancelEditBtn.style.display = '';
+    dupSlot.innerHTML = '';
+    formMsg.textContent = '';
+  }
+
+  function exitEditMode(){
+    editingId = null;
+    addForm.reset();
+    formTitle.textContent = 'Новый поставщик';
+    submitBtn.textContent = 'Добавить и подготовить конверт';
+    cancelEditBtn.style.display = 'none';
+    dupSlot.innerHTML = '';
+    formMsg.textContent = '';
+  }
+
+  cancelEditBtn.addEventListener('click', exitEditMode);
 
   async function submitForm(forceAdd){
     const formData = new FormData(addForm);
     const payload = {};
     formData.forEach(function(val, key){ payload[key] = val; });
     if (forceAdd) payload.forceAdd = true;
+    if (editingId){
+      payload.action = 'update';
+      payload['ID поставщика'] = editingId;
+    }
 
     formMsg.textContent = 'Сохраняем…';
     formMsg.className = 'form-msg';
@@ -838,7 +1028,7 @@
           '<div class="dup-banner">' + data.message +
           '<div class="actions">' +
             '<button type="button" class="btn btn-secondary" id="dup-cancel">Отмена</button>' +
-            '<button type="button" class="btn btn-primary" id="dup-force">Всё равно добавить</button>' +
+            '<button type="button" class="btn btn-primary" id="dup-force">' + (editingId ? 'Всё равно сохранить' : 'Всё равно добавить') + '</button>' +
           '</div></div>';
         document.getElementById('dup-force').addEventListener('click', function(){ submitForm(true); });
         document.getElementById('dup-cancel').addEventListener('click', function(){ dupSlot.innerHTML=''; });
@@ -847,11 +1037,17 @@
 
       if (data.status === 'ok'){
         payload['ID поставщика'] = data.id;
-        payload['Статус'] = payload['Статус'] || 'Активный';
-        suppliers.push(payload);
-        addForm.reset();
-        formMsg.textContent = '';
+        if (editingId){
+          const idx = suppliers.findIndex(function(s){ return (s['ID поставщика']||'').toString() === data.id; });
+          if (idx !== -1) suppliers[idx] = payload; else suppliers.push(payload);
+        } else {
+          payload['Статус'] = payload['Статус'] || 'Активный';
+          suppliers.push(payload);
+        }
+        const wasEditing = !!editingId;
+        exitEditMode();
         selectSupplier(payload);
+        if (activeView === 'directory') renderDirectory(document.getElementById('dir-search').value);
         loadData(true);
         return;
       }
