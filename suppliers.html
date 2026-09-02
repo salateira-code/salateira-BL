@@ -31,6 +31,12 @@
         action:'update' с проверкой на дубликаты, исключающей саму
         редактируемую строку — требуется обновить версию развёртывания
         (Управление развёртываниями → редактировать → Новая версия)
+  1.7 — координаты откалиброваны по реальной тестовой печати: отступ
+        отправителя слева, сдвиг блока получателя вправо, блок индекса
+        вынесен на фиксированные координаты (134мм/27мм от левого/нижнего
+        края, 30×7мм, ячейка 5×7мм) — больше не зависит от того, на сколько
+        строк перенеслись имя/адрес выше; весь текст на конверте — чистый
+        чёрный (#000), без зелёных/серых акцентов, под чёрно-белую печать
 -->
 <!doctype html>
 <html lang="ru">
@@ -60,9 +66,9 @@
     /* Положение текста на конверте (мм) — на бланке уже пропечатаны линии,
        "Каму"/"Куды" и рамка индекса, мы кладём только сами реквизиты.
        Если после тестовой печати текст ложится мимо разметки — правьте эти значения. */
-    --sender-top:12mm; --sender-left:8mm;
+    --sender-top:12mm; --sender-left:13mm;
     --service-top:9mm; --service-right:8mm;
-    --recipient-top:58mm; --recipient-left:112mm; --recipient-right:8mm;
+    --recipient-top:58mm; --recipient-left:137mm; --recipient-right:8mm;
   }
 
   *{box-sizing:border-box;}
@@ -191,21 +197,32 @@
   .envelope-face{ position:relative; font-family:'Manrope', sans-serif; }
   #envelope.envelope-face{ width:220mm; height:110mm; transform-origin:top left; background:var(--paper); }
 
+  .envelope-face{ color:#000; }
+
   .env-sender{ position:absolute; top:var(--sender-top); left:var(--sender-left); width:100mm; }
-  .sender-line{ font-size:9.5pt; line-height:1.55; color:#233229; }
-  .env-sender .brand-line{ font-weight:800; color:var(--green-dark); font-size:10.5pt; margin-bottom:1mm; }
+  .sender-line{ font-size:9.5pt; line-height:1.55; }
+  .env-sender .brand-line{ font-weight:800; font-size:10.5pt; margin-bottom:1mm; }
 
   .env-service{ position:absolute; top:var(--service-top); right:var(--service-right); width:82mm; text-align:right; }
-  .env-service .svc-type{ font-weight:700; color:var(--ink); font-size:9.5pt; margin-bottom:1.5mm; }
-  .env-service .svc-contract{ font-size:8pt; color:#5E6F63; }
+  .env-service .svc-type{ font-weight:700; font-size:9.5pt; margin-bottom:1.5mm; }
+  .env-service .svc-contract{ font-size:8pt; }
 
   .env-recipient{ position:absolute; top:var(--recipient-top); left:var(--recipient-left); right:var(--recipient-right); }
   .r-name{ font-weight:700; font-size:12pt; line-height:1.4; margin-bottom:4mm; }
-  .r-line{ font-size:10.5pt; line-height:1.4; color:#233229; margin-bottom:4mm; }
-  .r-index-row{ display:flex; align-items:center; }
-  .idx-digit{ display:inline-block; width:8.5mm; text-align:center; font-weight:700; font-size:11pt; }
-  .idx-city{ font-size:10.5pt; margin-left:2mm; }
-  .r-region{ font-size:9pt; color:#5E6F63; margin-top:2mm; }
+  .r-line{ font-size:10.5pt; line-height:1.4; margin-bottom:4mm; }
+  .r-region{ font-size:9pt; margin-top:2mm; }
+
+  /* Блок индекса — фиксированные координаты по замеру с тестовой печати,
+     не зависит от того, на сколько строк разъехались имя/адрес выше.
+     Левый нижний угол блока: 134мм от левого края, 27мм от нижнего края;
+     сам блок 30×7мм, одна ячейка 5×7мм (6 ячеек). */
+  .env-index-block{
+    position:absolute; left:134mm; top:calc(110mm - 27mm - 7mm);
+    width:30mm; height:7mm; display:flex;
+  }
+  .idx-digit{ width:5mm; height:7mm; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:11pt; }
+  .env-index-city{ position:absolute; left:167mm; top:calc(110mm - 27mm - 7mm); height:7mm; display:flex; align-items:center; font-size:10.5pt; }
+  .env-index-city.city-only{ left:134mm; }
 
   .env-actions{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
 
@@ -275,7 +292,7 @@
       <div class="sub">Поставщик из базы, разовое письмо или новая карточка — конверт готов к печати</div>
     </div>
     <div class="sync">
-      <span class="version-tag">v1.6</span>
+      <span class="version-tag">v1.7</span>
       <span id="sync-time">загрузка…</span>
       <button id="refresh-btn" type="button">Обновить</button>
     </div>
@@ -607,25 +624,29 @@
     '</div>';
   }
 
-  // Структура получателя всегда одна: Кому — первые строки, улица/дом —
-  // следом, индекс+город — предпоследней строкой, область (если не Минск) —
-  // последней, необязательной.
+  // "Кому"/"улица" — в свободном потоке (может занять 1-2 строки).
+  // Индекс+город — жёстко на своих координатах, не зависит от того, что выше.
   function recipientBlockHTML(item){
     const p = resolveAddressParts(item);
-    const indexBlock = p.index
-      ? '<div class="r-index-row">' +
-          p.index.split('').map(function(d){ return '<span class="idx-digit">' + d + '</span>'; }).join('') +
-          '<span class="idx-city">' + escapeHtml(p.city) + '</span></div>'
-      : (p.city ? '<div class="r-line">' + escapeHtml(p.city) + '</div>' : '');
     const regionBlock = (p.region && !isMinsk(p.city))
       ? '<div class="r-region">' + escapeHtml(p.region) + '</div>'
       : '';
-    return '<div class="env-recipient">' +
+    const nameStreet = '<div class="env-recipient">' +
       '<div class="r-name">' + escapeHtml(item.name) + '</div>' +
       '<div class="r-line">' + escapeHtml(p.street) + '</div>' +
-      indexBlock +
       regionBlock +
     '</div>';
+
+    let indexHtml = '';
+    if (p.index){
+      const boxes = p.index.split('').map(function(d){ return '<span class="idx-digit">' + d + '</span>'; }).join('');
+      indexHtml = '<div class="env-index-block">' + boxes + '</div>';
+      if (p.city) indexHtml += '<div class="env-index-city">' + escapeHtml(p.city) + '</div>';
+    } else if (p.city){
+      indexHtml = '<div class="env-index-city city-only">' + escapeHtml(p.city) + '</div>';
+    }
+
+    return nameStreet + indexHtml;
   }
 
   function envelopeMarkup(data){
