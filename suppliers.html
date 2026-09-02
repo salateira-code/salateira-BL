@@ -37,6 +37,11 @@
         края, 30×7мм, ячейка 5×7мм) — больше не зависит от того, на сколько
         строк перенеслись имя/адрес выше; весь текст на конверте — чистый
         чёрный (#000), без зелёных/серых акцентов, под чёрно-белую печать
+  1.8 — область больше не наезжает на индекс: раньше она текла в общем потоке
+        сразу под улицей и на длинных значениях (сельсовет/район/область
+        одной строкой) залезала на блок индекса. Теперь область — отдельный
+        фиксированный блок строго под индексом, растёт вниз и не зависит
+        от того, где закончился адрес выше. Справа от индекса — только город.
 -->
 <!doctype html>
 <html lang="ru">
@@ -209,13 +214,13 @@
 
   .env-recipient{ position:absolute; top:var(--recipient-top); left:var(--recipient-left); right:var(--recipient-right); }
   .r-name{ font-weight:700; font-size:12pt; line-height:1.4; margin-bottom:4mm; }
-  .r-line{ font-size:10.5pt; line-height:1.4; margin-bottom:4mm; }
-  .r-region{ font-size:9pt; margin-top:2mm; }
+  .r-line{ font-size:10.5pt; line-height:1.4; }
 
   /* Блок индекса — фиксированные координаты по замеру с тестовой печати,
      не зависит от того, на сколько строк разъехались имя/адрес выше.
      Левый нижний угол блока: 134мм от левого края, 27мм от нижнего края;
-     сам блок 30×7мм, одна ячейка 5×7мм (6 ячеек). */
+     сам блок 30×7мм, одна ячейка 5×7мм (6 ячеек). Справа от индекса — только город.
+     Область — отдельным блоком строго под индексом, растёт вниз. */
   .env-index-block{
     position:absolute; left:134mm; top:calc(110mm - 27mm - 7mm);
     width:30mm; height:7mm; display:flex;
@@ -223,6 +228,7 @@
   .idx-digit{ width:5mm; height:7mm; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:11pt; }
   .env-index-city{ position:absolute; left:167mm; top:calc(110mm - 27mm - 7mm); height:7mm; display:flex; align-items:center; font-size:10.5pt; }
   .env-index-city.city-only{ left:134mm; }
+  .env-region{ position:absolute; left:134mm; top:calc(110mm - 27mm + 2mm); width:78mm; font-size:9pt; line-height:1.4; }
 
   .env-actions{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
 
@@ -292,7 +298,7 @@
       <div class="sub">Поставщик из базы, разовое письмо или новая карточка — конверт готов к печати</div>
     </div>
     <div class="sync">
-      <span class="version-tag">v1.7</span>
+      <span class="version-tag">v1.8</span>
       <span id="sync-time">загрузка…</span>
       <button id="refresh-btn" type="button">Обновить</button>
     </div>
@@ -625,16 +631,12 @@
   }
 
   // "Кому"/"улица" — в свободном потоке (может занять 1-2 строки).
-  // Индекс+город — жёстко на своих координатах, не зависит от того, что выше.
+  // Индекс+город и область — жёстко на своих координатах, не зависят от того, что выше.
   function recipientBlockHTML(item){
     const p = resolveAddressParts(item);
-    const regionBlock = (p.region && !isMinsk(p.city))
-      ? '<div class="r-region">' + escapeHtml(p.region) + '</div>'
-      : '';
     const nameStreet = '<div class="env-recipient">' +
       '<div class="r-name">' + escapeHtml(item.name) + '</div>' +
       '<div class="r-line">' + escapeHtml(p.street) + '</div>' +
-      regionBlock +
     '</div>';
 
     let indexHtml = '';
@@ -646,7 +648,11 @@
       indexHtml = '<div class="env-index-city city-only">' + escapeHtml(p.city) + '</div>';
     }
 
-    return nameStreet + indexHtml;
+    const regionHtml = (p.region && !isMinsk(p.city))
+      ? '<div class="env-region">' + escapeHtml(p.region) + '</div>'
+      : '';
+
+    return nameStreet + indexHtml + regionHtml;
   }
 
   function envelopeMarkup(data){
