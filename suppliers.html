@@ -42,6 +42,29 @@
         одной строкой) залезала на блок индекса. Теперь область — отдельный
         фиксированный блок строго под индексом, растёт вниз и не зависит
         от того, где закончился адрес выше. Справа от индекса — только город.
+  1.9 — длинное название + длинный адрес вместе больше не наезжают на блок
+        индекса: раньше имя/улица просто текли вниз без ограничения высоты.
+        Теперь после вставки конверта в DOM реально измеряется высота этого
+        текста, и если она не влезает в промежуток до индекса — кегль имени
+        и адреса, межстрочный интервал и отступ между ними пошагово
+        уменьшаются (до 7 ступеней), пока текст не перестанет наезжать;
+        работает и в предпросмотре, и при пакетной печати каждого конверта
+        отдельно, с ожиданием загрузки шрифта перед измерением. Также правое
+        поле конверта (служебный блок и блок получателя) увеличено на 5мм —
+        принтер не всегда пропечатывал текст у самого края.
+  2.0 — конверт полностью пересобран 1:1 по шаблону «образец конверта»
+        (Illustrator): один SVG в мм, каждая строка стоит на своей базовой
+        линии бланка. У каждого поля свои фиксированные строки: «Каму» — 2,
+        «Куды» — 2, город — справа от индекса, область/район — 2 строки под
+        ним. Текст никогда не переходит в чужие строки: если не влезает —
+        уменьшается кегль (12pt → до 7pt), в крайнем случае строка
+        поджимается по ширине. Перенос — по возможности после запятой
+        (улица, дом / помещение). Шрифты: Arial, Arial Bold, индекс —
+        Courier New Bold 24pt по ячейке. Ширина считается через canvas, так
+        что работает и при пакетной печати (в 1.9 подгонка в скрытом
+        #print-root не срабатывала). Линии бланка видны в предпросмотре, но
+        не печатаются. Исправлен «+» в поиске: в очередь попадал поставщик
+        без индекса/города/области. Обратный адрес — 3 строки по шаблону.
 -->
 <!doctype html>
 <html lang="ru">
@@ -67,13 +90,7 @@
     --bg:#F4F7F4;
     --red:#DC394B;
     --radius:10px;
-
-    /* Положение текста на конверте (мм) — на бланке уже пропечатаны линии,
-       "Каму"/"Куды" и рамка индекса, мы кладём только сами реквизиты.
-       Если после тестовой печати текст ложится мимо разметки — правьте эти значения. */
-    --sender-top:12mm; --sender-left:13mm;
-    --service-top:9mm; --service-right:8mm;
-    --recipient-top:58mm; --recipient-left:137mm; --recipient-right:8mm;
+    /* Координаты текста на конверте — в JS, объект ENV_LAYOUT (мм, по шаблону). */
   }
 
   *{box-sizing:border-box;}
@@ -199,36 +216,20 @@
     box-shadow:0 1px 3px rgba(0,0,0,.08), 0 8px 24px rgba(20,38,26,.06);
     background:var(--paper);
   }
-  .envelope-face{ position:relative; font-family:'Manrope', sans-serif; }
+  .envelope-face{ position:relative; color:#000; }
   #envelope.envelope-face{ width:220mm; height:110mm; transform-origin:top left; background:var(--paper); }
 
-  .envelope-face{ color:#000; }
-
-  .env-sender{ position:absolute; top:var(--sender-top); left:var(--sender-left); width:100mm; }
-  .sender-line{ font-size:9.5pt; line-height:1.55; }
-  .env-sender .brand-line{ font-weight:800; font-size:10.5pt; margin-bottom:1mm; }
-
-  .env-service{ position:absolute; top:var(--service-top); right:var(--service-right); width:82mm; text-align:right; }
-  .env-service .svc-type{ font-weight:700; font-size:9.5pt; margin-bottom:1.5mm; }
-  .env-service .svc-contract{ font-size:8pt; }
-
-  .env-recipient{ position:absolute; top:var(--recipient-top); left:var(--recipient-left); right:var(--recipient-right); }
-  .r-name{ font-weight:700; font-size:12pt; line-height:1.4; margin-bottom:4mm; }
-  .r-line{ font-size:10.5pt; line-height:1.4; }
-
-  /* Блок индекса — фиксированные координаты по замеру с тестовой печати,
-     не зависит от того, на сколько строк разъехались имя/адрес выше.
-     Левый нижний угол блока: 134мм от левого края, 27мм от нижнего края;
-     сам блок 30×7мм, одна ячейка 5×7мм (6 ячеек). Справа от индекса — только город.
-     Область — отдельным блоком строго под индексом, растёт вниз. */
-  .env-index-block{
-    position:absolute; left:134mm; top:calc(110mm - 27mm - 7mm);
-    width:30mm; height:7mm; display:flex;
-  }
-  .idx-digit{ width:5mm; height:7mm; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:11pt; }
-  .env-index-city{ position:absolute; left:167mm; top:calc(110mm - 27mm - 7mm); height:7mm; display:flex; align-items:center; font-size:10.5pt; }
-  .env-index-city.city-only{ left:134mm; }
-  .env-region{ position:absolute; left:134mm; top:calc(110mm - 27mm + 2mm); width:78mm; font-size:9pt; line-height:1.4; }
+  /* Конверт рисуется одним SVG в системе координат 220×110 (1 единица = 1 мм).
+     Текст ставится по базовой линии (y = базовая линия строки), как в
+     шаблоне — никаких line-height и "плавающих" блоков, поэтому ничто не
+     может ни на что наехать. Шрифты — системные, есть на Windows и Mac. */
+  .env-svg{ display:block; width:220mm; height:110mm; overflow:visible; }
+  .env-svg text{ fill:#000; font-family:Arial, 'Liberation Sans', Helvetica, sans-serif; }
+  .env-svg .t-bold{ font-weight:700; }
+  .env-svg .t-index{ font-family:'Courier New', 'Liberation Mono', Courier, monospace; font-weight:700; }
+  /* Линии бланка — только для предпросмотра на экране, на печать не идут
+     (на конверте они уже пропечатаны). */
+  .env-svg .env-guide{ stroke:#B9C4BC; stroke-width:0.26; fill:none; }
 
   .env-actions{ display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
 
@@ -277,7 +278,8 @@
   @media print{
     .app{ display:none; }
     #print-root{ display:block; }
-    #print-root .envelope-page{ width:220mm; height:110mm; background:transparent; }
+    #print-root .envelope-page{ width:220mm; height:110mm; background:transparent; overflow:hidden; }
+    .env-svg .env-guide{ display:none; }
     #print-root .envelope-page:not(:last-child){ page-break-after:always; }
     @page{ size:220mm 110mm; margin:0; }
   }
@@ -298,7 +300,7 @@
       <div class="sub">Поставщик из базы, разовое письмо или новая карточка — конверт готов к печати</div>
     </div>
     <div class="sync">
-      <span class="version-tag">v1.8</span>
+      <span class="version-tag">v2.0</span>
       <span id="sync-time">загрузка…</span>
       <button id="refresh-btn" type="button">Обновить</button>
     </div>
@@ -545,7 +547,7 @@
   const REGION_FIELD = 'Область';
 
   const MM_TO_PX = 96 / 25.4;
-  const SENDER_LINES = ['ООО «ДаСпадобы»', 'Старовиленский тракт,', 'д. 87, оф. 202', '220053, г. Минск'];
+  const SENDER_LINES = ['ООО «ДаСпадобы»', 'Старовиленский тракт, д. 87, оф. 202', '220053, г. Минск, Беларусь'];
   const CONTRACT_PHRASE = 'по договору № 585 от 02.06.2022';
 
   // Очередь на печать хранится в localStorage — если вкладку закрыть
@@ -615,48 +617,180 @@
     return { street: a.line, index: a.index || '', city: a.cityAfter || '', region: '' };
   }
 
-  function senderBlockHTML(){
-    return '<div class="env-sender">' +
-      SENDER_LINES.map(function(line, i){
-        return '<div class="sender-line' + (i === 0 ? ' brand-line' : '') + '">' + escapeHtml(line) + '</div>';
-      }).join('') +
-    '</div>';
+  // ================= КОНВЕРТ =================
+  // Все координаты сняты 1:1 с шаблона «образец конверта» (Illustrator, 220×110мм).
+  // Единицы — мм от левого верхнего угла конверта; y — БАЗОВАЯ ЛИНИЯ строки текста.
+  // Каждое поле имеет фиксированные строки-«слоты» (как линии на бланке):
+  // текст раскладывается только по своим слотам и никогда не переходит в чужие.
+  // Не влезает в свои строки — уменьшается кегль (до ENV_LAYOUT.minSize),
+  // а в совсем крайнем случае строка дополнительно поджимается по ширине.
+  const PT = 25.4 / 72; // 1pt в мм
+  const ENV_LAYOUT = {
+    sender: { x:9, maxX:74, lines:[ {y:15.68, size:12, bold:true}, {y:21.22, size:10}, {y:26.27, size:10} ] },
+    service: { xRight:201.91, type:{y:14.37, size:11}, contract:{y:18.96, size:11} },
+    name:   { size:12, bold:true, slots:[ {x:140, y:52.86, maxX:208}, {x:133, y:59.70, maxX:208} ] },   // «Каму»
+    street: { size:12, slots:[ {x:140, y:66.99, maxX:208}, {x:133, y:73.92, maxX:208} ] },              // «Куды»
+    index:  { x:133, cell:5, y:81.38, size:24 },                                                       // 6 ячеек 5×7мм, верх 75мм
+    city:   { size:12, slots:[ {x:163.76, y:81.38, maxX:208} ] },                                     // справа от индекса
+    region: { size:12, slots:[ {x:133, y:88.04, maxX:208}, {x:133, y:95.04, maxX:208} ] },             // область / район
+    minSize: 7,      // меньше 7pt не уменьшаем — дальше только поджатие по ширине
+    step: 0.25
+  };
+  // Линии бланка — рисуются только в предпросмотре на экране (на печати скрыты).
+  const ENV_GUIDES = {
+    lines: [
+      [9,10,74,10],[9,17,74,17],[9,22,74,22],[9,27,74,27],[9,32,74,32],
+      [140,53.94,208,53.94],[133,61,208,61],[140,68,208,68],[133,75,208,75],
+      [133,82,208,82],[133,89,208,89],[133,96,208,96],
+      [193,9,208,9],[208,9,208,24]
+    ],
+    boxes: { x:133, y:75, w:5, h:7, n:6 }
+  };
+
+  const FONT_SANS = 'Arial, "Liberation Sans", Helvetica, sans-serif';
+  const measureCtx = document.createElement('canvas').getContext('2d');
+  // Ширина строки в мм при заданном кегле — через canvas тем же системным
+  // шрифтом, что и на печати. Работает даже для скрытого #print-root.
+  function textWidthMM(text, sizePt, bold){
+    measureCtx.font = (bold ? 'bold ' : '') + '100px ' + FONT_SANS;
+    return measureCtx.measureText(text).width / 100 * sizePt * PT;
   }
+  function r2(v){ return Math.round(v * 100) / 100; }
 
-  function serviceBlockHTML(letterType){
-    return '<div class="env-service">' +
-      '<div class="svc-type">' + escapeHtml(letterType) + '</div>' +
-      '<div class="svc-contract">' + CONTRACT_PHRASE + '</div>' +
-    '</div>';
-  }
-
-  // "Кому"/"улица" — в свободном потоке (может занять 1-2 строки).
-  // Индекс+город и область — жёстко на своих координатах, не зависят от того, что выше.
-  function recipientBlockHTML(item){
-    const p = resolveAddressParts(item);
-    const nameStreet = '<div class="env-recipient">' +
-      '<div class="r-name">' + escapeHtml(item.name) + '</div>' +
-      '<div class="r-line">' + escapeHtml(p.street) + '</div>' +
-    '</div>';
-
-    let indexHtml = '';
-    if (p.index){
-      const boxes = p.index.split('').map(function(d){ return '<span class="idx-digit">' + d + '</span>'; }).join('');
-      indexHtml = '<div class="env-index-block">' + boxes + '</div>';
-      if (p.city) indexHtml += '<div class="env-index-city">' + escapeHtml(p.city) + '</div>';
-    } else if (p.city){
-      indexHtml = '<div class="env-index-city city-only">' + escapeHtml(p.city) + '</div>';
+  // Пробует разложить слова по слотам при кегле sizePt. Если в первую
+  // строку не влезает всё — ищет разрыв: предпочтительно после запятой
+  // (улица+дом / помещение), иначе как можно позже. null — не влезло.
+  function layoutAtSize(words, slots, sizePt, bold){
+    const width = function(k){ return slots[k].maxX - slots[k].x; };
+    const fits = function(str, k){ return textWidthMM(str, sizePt, bold) <= width(k); };
+    const all = words.join(' ');
+    if (fits(all, 0)) return [all];
+    if (slots.length === 1) return null;
+    if (slots.length === 2){
+      let best = -1, bestComma = -1;
+      for (let b = words.length - 1; b >= 1; b--){
+        const l1 = words.slice(0, b).join(' '), l2 = words.slice(b).join(' ');
+        if (fits(l1, 0) && fits(l2, 1)){
+          if (best === -1) best = b;
+          if (bestComma === -1 && /,$/.test(words[b - 1])) bestComma = b;
+        }
+      }
+      const b = bestComma !== -1 ? bestComma : best;
+      return b === -1 ? null : [words.slice(0, b).join(' '), words.slice(b).join(' ')];
     }
+    // >2 слотов — жадно
+    const lines = []; let i = 0;
+    for (let k = 0; k < slots.length && i < words.length; k++){
+      let line = '';
+      while (i < words.length && fits(line ? line + ' ' + words[i] : words[i], k)){ line = line ? line + ' ' + words[i] : words[i]; i++; }
+      if (!line) return null;
+      lines.push(line);
+    }
+    return i >= words.length ? lines : null;
+  }
 
-    const regionHtml = (p.region && !isMinsk(p.city))
-      ? '<div class="env-region">' + escapeHtml(p.region) + '</div>'
-      : '';
+  // Подбирает кегль, при котором поле целиком помещается в свои строки.
+  function fitField(text, spec){
+    const words = toStr(text).split(/\s+/).filter(Boolean);
+    if (!words.length) return { size: spec.size, lines: [], squeeze: [] };
+    const bold = !!spec.bold;
+    for (let s = spec.size; s >= ENV_LAYOUT.minSize - 1e-9; s -= ENV_LAYOUT.step){
+      const lines = layoutAtSize(words, spec.slots, s, bold);
+      if (lines) return { size: s, lines: lines, squeeze: [] };
+    }
+    // Крайний случай: минимальный кегль; для двух строк — разрыв, при котором
+    // переполнение распределено равномернее, иначе жадно (последняя строка
+    // забирает остаток). Что не влезает по ширине — поджимается (textLength).
+    const s = ENV_LAYOUT.minSize, n = spec.slots.length;
+    let lines = [];
+    if (n === 2 && words.length > 1){
+      const W0 = spec.slots[0].maxX - spec.slots[0].x, W1 = spec.slots[1].maxX - spec.slots[1].x;
+      let bestB = 1, bestRatio = Infinity;
+      for (let b = 1; b < words.length; b++){
+        const ratio = Math.max(textWidthMM(words.slice(0, b).join(' '), s, bold) / W0,
+                               textWidthMM(words.slice(b).join(' '), s, bold) / W1);
+        if (ratio < bestRatio){ bestRatio = ratio; bestB = b; }
+      }
+      lines = [words.slice(0, bestB).join(' '), words.slice(bestB).join(' ')];
+    }
+    const greedy = !lines.length;
+    let i = 0;
+    for (let k = 0; greedy && k < n; k++){
+      if (k === n - 1){ lines.push(words.slice(i).join(' ')); break; }
+      const w = spec.slots[k].maxX - spec.slots[k].x;
+      let line = words[i] || ''; i++;
+      while (i < words.length && textWidthMM(line + ' ' + words[i], s, bold) <= w){ line += ' ' + words[i]; i++; }
+      lines.push(line);
+    }
+    const squeeze = lines.map(function(l, k){
+      const w = spec.slots[k].maxX - spec.slots[k].x;
+      return textWidthMM(l, s, bold) > w ? w : 0;
+    });
+    return { size: s, lines: lines, squeeze: squeeze };
+  }
 
-    return nameStreet + indexHtml + regionHtml;
+  function svgText(x, y, sizePt, text, opt){
+    opt = opt || {};
+    let a = 'x="' + r2(x) + '" y="' + r2(y) + '" font-size="' + r2(sizePt * PT) + '"';
+    if (opt.cls) a += ' class="' + opt.cls + '"';
+    if (opt.anchor) a += ' text-anchor="' + opt.anchor + '"';
+    if (opt.squeezeTo) a += ' textLength="' + r2(opt.squeezeTo) + '" lengthAdjust="spacingAndGlyphs"';
+    return '<text ' + a + '>' + escapeHtml(text) + '</text>';
+  }
+
+  function fieldSVG(text, spec){
+    const f = fitField(text, spec);
+    return f.lines.map(function(line, k){
+      const slot = spec.slots[k];
+      return svgText(slot.x, slot.y, f.size, line, { cls: spec.bold ? 't-bold' : '', squeezeTo: f.squeeze[k] || 0 });
+    }).join('');
+  }
+
+  function guidesSVG(){
+    const g = ENV_GUIDES;
+    let out = g.lines.map(function(l){
+      return '<line class="env-guide" x1="' + l[0] + '" y1="' + l[1] + '" x2="' + l[2] + '" y2="' + l[3] + '"/>';
+    }).join('');
+    for (let i = 0; i < g.boxes.n; i++){
+      out += '<rect class="env-guide" x="' + (g.boxes.x + i * g.boxes.w) + '" y="' + g.boxes.y + '" width="' + g.boxes.w + '" height="' + g.boxes.h + '"/>';
+    }
+    return out;
+  }
+
+  function senderSVG(){
+    const L = ENV_LAYOUT.sender;
+    return SENDER_LINES.map(function(line, i){
+      const ln = L.lines[i]; if (!ln) return '';
+      const spec = { size: ln.size, bold: ln.bold, slots: [{ x: L.x, y: ln.y, maxX: L.maxX }] };
+      return fieldSVG(line, spec);
+    }).join('');
+  }
+
+  function serviceSVG(letterType){
+    const S = ENV_LAYOUT.service;
+    return svgText(S.xRight, S.type.y, S.type.size, letterType || '', { cls:'t-bold', anchor:'end' }) +
+           svgText(S.xRight, S.contract.y, S.contract.size, CONTRACT_PHRASE, { anchor:'end' });
+  }
+
+  function recipientSVG(item){
+    const p = resolveAddressParts(item);
+    let out = fieldSVG(item.name, ENV_LAYOUT.name) + fieldSVG(p.street, ENV_LAYOUT.street);
+
+    const digits = toStr(p.index).replace(/\D/g, '').slice(0, 6);
+    const I = ENV_LAYOUT.index;
+    digits.split('').forEach(function(d, i){
+      out += svgText(I.x + I.cell * i + I.cell / 2, I.y, I.size, d, { cls:'t-index', anchor:'middle' });
+    });
+
+    out += fieldSVG(p.city, ENV_LAYOUT.city);
+    if (p.region && !isMinsk(p.city)) out += fieldSVG(p.region, ENV_LAYOUT.region);
+    return out;
   }
 
   function envelopeMarkup(data){
-    return senderBlockHTML() + serviceBlockHTML(data.letterType) + recipientBlockHTML(data);
+    return '<svg class="env-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 110">' +
+      guidesSVG() + senderSVG() + serviceSVG(data.letterType) + recipientSVG(data) +
+    '</svg>';
   }
 
   // Конверт вёрстается в реальных мм; на экране просто масштабируем блок
@@ -737,7 +871,7 @@
       btn.addEventListener('click', function(e){
         e.stopPropagation();
         const s = suppliers[parseInt(btn.dataset.idx, 10)];
-        addToQueue({ name: s[NAME_FIELD] || '', address: s[ADDR_FIELD] || s[LEGAL_ADDR_FIELD] || '', letterType: 'Простое' });
+        addToQueue(supplierToItem(s, 'Простое'));
       });
     });
   }
@@ -754,7 +888,8 @@
     if (!currentSelection) return;
     currentSelection.letterType = letterTypeSelect.value;
     try{
-      document.getElementById('envelope').innerHTML = envelopeMarkup(currentSelection);
+      const envEl = document.getElementById('envelope');
+      envEl.innerHTML = envelopeMarkup(currentSelection);
     }catch(err){
       console.error('Ошибка сборки конверта', err, currentSelection);
       document.getElementById('envelope').innerHTML =
@@ -763,17 +898,22 @@
     }
   }
 
-  function selectSupplier(s){
-    currentSelection = {
-      name: s[NAME_FIELD] || '',
-      street: s[ADDR_FIELD] || '',
-      postalCode: s[POSTAL_FIELD] || '',
-      city: s[CITY_FIELD] || '',
-      region: s[REGION_FIELD] || '',
-      address: s[ADDR_FIELD] || s[LEGAL_ADDR_FIELD] || '', // фолбэк для старых записей без разнесённых полей
-      letterType: letterTypeSelect.value,
-      sourceSupplier: s
+  // Единая сборка данных конверта из строки базы — и для выбора, и для
+  // быстрого "+" в очередь (раньше "+" терял индекс/город/область).
+  function supplierToItem(s, letterType){
+    return {
+      name: toStr(s[NAME_FIELD]),
+      street: toStr(s[ADDR_FIELD]),
+      postalCode: toStr(s[POSTAL_FIELD]),
+      city: toStr(s[CITY_FIELD]),
+      region: toStr(s[REGION_FIELD]),
+      address: toStr(s[ADDR_FIELD] || s[LEGAL_ADDR_FIELD]), // фолбэк для старых записей без разнесённых полей
+      letterType: letterType
     };
+  }
+
+  function selectSupplier(s){
+    currentSelection = supplierToItem(s, letterTypeSelect.value);
     showEnvelopeArea();
     renderCurrentEnvelope();
 
