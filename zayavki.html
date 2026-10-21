@@ -1,7 +1,9 @@
 <!--
   Salateira · Заявки на расходники (zayavki.html)
-  Версия 1.6
+  Версия 1.7
 
+  1.7 — компактная форма заявки: позиции в две колонки на широком экране, плотнее строки,
+        количество рядом с названием; в накладной «Отпустил» вместо «Сдал».
   1.6 — корректировка утверждённой заявки (количество/комментарий, номера накладных
         сохраняются); пометка «больше обычного» у Тани; «Как в прошлый раз» в новой
         заявке. Нужен Code.gs ≥ 1.4.0.
@@ -67,7 +69,7 @@
   .panel{ background:#fff; border:1px solid var(--line); border-radius:var(--radius); padding:20px; }
   .panel + .panel{ margin-top:16px; }
   h2.panel-title{ font-size:1rem; font-weight:700; margin:0 0 14px; }
-  h3.sec{ font-size:0.8rem; font-weight:700; color:var(--accent-dark); margin:18px 0 8px; padding-bottom:6px; border-bottom:1px solid var(--line); text-transform:uppercase; letter-spacing:0.03em; }
+  h3.sec{ font-size:0.8rem; font-weight:700; color:var(--accent-dark); margin:14px 0 4px; padding-bottom:6px; border-bottom:1px solid var(--line); text-transform:uppercase; letter-spacing:0.03em; }
   .muted{ color:var(--muted); }
   .small{ font-size:0.8rem; }
   .split{ display:grid; grid-template-columns:minmax(320px, 420px) 1fr; gap:18px; align-items:start; }
@@ -119,18 +121,21 @@
   .st-Отгружена{ background:#E9E6F1; color:#4A4560; }
   .chip.late{ background:var(--red-soft); color:var(--red); }
 
-  .item-row{ display:grid; grid-template-columns:1fr 92px 150px; gap:10px; align-items:center; padding:7px 0; border-bottom:1px solid #EFECF6; }
+  .items-grid{ display:grid; grid-template-columns:1fr 1fr; column-gap:36px; }
+  @media (max-width:1000px){ .items-grid{ grid-template-columns:1fr; } }
+  .item-row{ display:grid; grid-template-columns:1fr 70px 124px; gap:8px; align-items:center; padding:4px 0; border-bottom:1px solid #EFECF6; min-height:44px; }
   .item-row:last-child{ border-bottom:none; }
-  .item-row .nm{ font-weight:600; font-size:0.9rem; }
-  .item-row .meta{ font-size:0.74rem; color:var(--muted); }
+  @media (min-width:1001px){ .items-grid .item-row:nth-last-child(2):nth-child(odd){ border-bottom:none; } }
+  .item-row .nm{ font-weight:600; font-size:0.88rem; line-height:1.25; }
+  .item-row .meta{ font-size:0.72rem; color:var(--muted); line-height:1.2; }
   .item-row .prev{ font-size:0.78rem; color:var(--muted); text-align:right; }
   .item-row .note{ font-size:0.76rem; color:var(--red); }
   .qty{ display:flex; align-items:center; gap:4px; }
-  .qty button{ width:30px; height:34px; border:1.5px solid var(--line); background:#fff; border-radius:8px; font-weight:800; font-size:1rem; color:var(--accent-dark); cursor:pointer; flex:0 0 auto; }
+  .qty button{ width:28px; height:30px; border:1.5px solid var(--line); background:#fff; border-radius:8px; font-weight:800; font-size:1rem; color:var(--accent-dark); cursor:pointer; flex:0 0 auto; }
   .qty button:hover{ border-color:var(--accent); background:var(--accent-soft); }
-  .qty input{ text-align:center; padding:7px 4px; }
+  .qty input{ text-align:center; padding:4px; height:30px; }
   .item-row.has-qty .nm{ color:var(--accent-dark); }
-  @media (max-width:600px){ .item-row{ grid-template-columns:1fr 132px; } .item-row .prev{ grid-column:1; text-align:left; } }
+  @media (max-width:600px){ .item-row{ grid-template-columns:1fr 124px; } .item-row .prev{ grid-column:1; text-align:left; } }
 
   .free-row{ display:grid; grid-template-columns:1fr 80px 90px 34px; gap:8px; margin-bottom:6px; }
   .x-btn{ border:1.5px solid var(--line); background:#fff; border-radius:8px; cursor:pointer; color:var(--red); font-weight:800; }
@@ -207,7 +212,7 @@
 'use strict';
 
 const API = 'https://script.google.com/macros/s/AKfycbyFzdhhkVtxq8RWyaUzDBZAqe_M7sLbNgYOVMuly4HHmqLzse5b-5yhAE72PjWscjcF/exec';
-const VERSION = '1.6';
+const VERSION = '1.7';
 const LOGO = '<svg class="logo-mark" viewBox="0 0 1059 188" xmlns="http://www.w3.org/2000/svg" aria-label="Salateira"><path d="M611.586 107.247C617.466 33.8785 734.55 28.51 738.384 107.247C738.384 120.54 732.509 125.577 714.354 126.676H646.098C646.098 153.262 666.549 172.691 697.226 159.397C706.94 153.773 712.564 146.301 717.677 143.037C729.692 135.368 742.162 148.332 734.805 159.397C703.361 206.691 601.105 195.699 611.586 107.247ZM551.401 2.06641C560.578 2.06654 568.017 9.50577 568.017 18.6826V53.4678H583.643C590.138 53.4679 595.403 58.733 595.403 65.2275C595.403 71.722 590.138 76.9872 583.643 76.9873H568.017V149.798C569.105 157.145 571.859 158.706 574.615 159.854C577.938 160.877 582.796 161.464 593.277 158.064C603.758 154.666 616.028 172.892 595.322 182.351C574.615 191.809 533.713 188.997 534.735 153.463L534.804 153.449C534.791 153.181 534.785 152.91 534.785 152.639V76.9873H526.379C519.885 76.9873 514.62 71.7221 514.62 65.2275C514.62 58.733 519.885 53.4678 526.379 53.4678H534.785V18.6826C534.785 9.50569 542.224 2.06641 551.401 2.06641ZM783.589 50.1328C792.766 50.133 800.205 57.5722 800.206 66.749V170.028C800.205 179.205 792.766 186.644 783.589 186.645C774.412 186.645 766.973 179.205 766.973 170.028V66.749C766.973 57.5721 774.412 50.1328 783.589 50.1328ZM850.588 50.1328C859.765 50.1328 867.204 57.5721 867.205 66.749V68.8203C878.771 46.6922 897.178 47.8161 912.415 54.3105C937.723 64.0246 922.128 88.4264 907.045 82.9424C877.779 72.3012 869.743 84.3673 867.205 129.686V170.028C867.204 179.205 859.765 186.645 850.588 186.645C841.412 186.644 833.972 179.205 833.972 170.028V66.749C833.972 57.5722 841.412 50.133 850.588 50.1328ZM336.192 0C345.369 4.01144e-07 352.808 7.4391 352.808 16.6162V170.001C352.808 179.178 345.369 186.617 336.192 186.617C327.015 186.617 319.576 179.178 319.576 170.001V16.6162C319.576 7.4392 327.015 0.000164922 336.192 0ZM172.831 73.6973C186.635 44.8099 284.545 34.5843 284.545 88.5244L286.335 150.134C288.015 158.223 291.666 165.459 291.666 171.097C291.665 188.48 268.44 195.127 255.147 167.518C233.929 182.089 218.846 190.526 190.214 183.879C155.192 171.608 152.38 126.103 190.214 113.321L252.846 99.0059C252.846 62.705 206.065 70.8853 197.628 88.5244C187.358 109.998 160.211 100.105 172.831 73.6973ZM388.629 73.6973C402.434 44.8099 500.344 34.5843 500.344 88.5244L502.134 150.134C503.814 158.223 507.464 165.459 507.464 171.097C507.464 188.48 484.239 195.127 470.946 167.518C449.728 182.089 434.645 190.526 406.013 183.879C370.99 171.608 368.178 126.103 406.013 113.321L468.645 99.0059C468.645 62.705 421.864 70.8853 413.427 88.5244C403.157 109.998 376.01 100.105 388.629 73.6973ZM3.59721 46.8545C3.59721 -7.59644 117.868 -19.6115 134.485 38.9297C139.086 59.8927 110.551 74.4792 101.252 46.8545C92.5596 21.0354 44.7549 17.712 37.3413 46.8545C35.8076 73.186 92.3796 73.4214 112.755 83.4121C152.38 102.841 151.869 151.923 117.869 174.675C85.1468 194.615 9.98783 191.037 0.528848 140.42C-4.1049 115.623 23.0256 107.953 30.6949 128.148C44.7548 159.337 70.0459 163.419 90.771 154.99C108.893 147.62 112.5 117.978 90.771 111.531C35.2011 95.0457 3.59722 93.6373 3.59721 46.8545ZM939.535 73.4414C953.339 44.5541 1051.25 34.3286 1051.25 88.2686L1053.04 149.878C1054.72 157.967 1058.37 165.203 1058.37 170.841C1058.37 188.224 1035.15 194.871 1021.85 167.262C1000.63 181.833 985.55 190.27 956.918 183.623C921.896 171.352 919.084 125.849 956.918 113.066L1019.55 98.75C1019.55 62.4493 972.769 70.6295 964.333 88.2686C954.062 109.742 926.915 99.8493 939.535 73.4414ZM252.846 119.201C232.395 126.615 213.733 128.532 207.086 131.472C193.793 137.351 194.56 154.991 207.086 161.638C223.703 169.051 250.801 157.548 252.846 134.54V119.201ZM468.645 119.201C448.194 126.615 429.532 128.532 422.885 131.472C409.592 137.351 410.359 154.991 422.885 161.638C439.502 169.051 466.6 157.548 468.645 134.54V119.201ZM1019.55 118.945C999.099 126.359 980.438 128.277 973.792 131.217C960.498 137.097 961.265 154.735 973.792 161.382C990.408 168.795 1017.51 157.292 1019.55 134.284V118.945ZM676.775 73.7578C658.369 73.7578 649.166 85.2621 646.098 107.247H706.173C704.128 87.0516 695.692 73.7578 676.775 73.7578ZM783.594 2.06641C792.771 2.06644 800.211 9.50571 800.211 18.6826C800.211 27.8597 792.771 35.2988 783.594 35.2988H783.055C773.878 35.2988 766.439 27.8597 766.439 18.6826C766.439 9.50569 773.878 2.06641 783.055 2.06641H783.594Z" fill="#7002FF"/></svg>';
 const TOKEN_KEY = 'slt_zayavki_token';
 const WD = ['вс','пн','вт','ср','чт','пт','сб'];
@@ -468,7 +473,7 @@ VIEWS.new = function(){
   cats.forEach(cat => {
     const list = items.filter(i => (i.category || 'Прочее') === cat && (!q || i.name.toLowerCase().indexOf(q) >= 0));
     if (!list.length) return;
-    html += '<h3 class="sec">' + h(cat) + '</h3>';
+    html += '<h3 class="sec">' + h(cat) + '</h3><div class="items-grid">';
     list.forEach(i => {
       const v = f.qty[i.id] || '';
       const p = prev && prev.map[i.id] !== undefined ? prev.map[i.id] : null;
@@ -480,6 +485,7 @@ VIEWS.new = function(){
         '<input type="text" inputmode="decimal" value="' + h(v) + '" placeholder="0" onchange="App.setQty(\'' + h(i.id) + '\', this.value)">' +
         '<button type="button" onclick="App.step(\'' + h(i.id) + '\',1)">+</button></div></div>';
     });
+    html += '</div>';
   });
 
   html += '<h3 class="sec">Нет в списке</h3>';
@@ -932,7 +938,7 @@ function invoicesHtml(invs, wrap){
       '<div class="parties"><div>Отпустил: <b>' + h(i.fromName) + '</b></div><div>Принял: <b>' + h(i.toName) + '</b></div></div>' +
       '<table><thead><tr><th style="width:62%">Наименование</th><th>Ед. изм.</th><th>Количество</th></tr></thead><tbody>' + rows.join('') + '</tbody></table>' +
       '<div class="basis">Основание: ' + h(i.basis) + '</div>' +
-      '<div class="sign"><b>Сдал</b> _______________________________<br><b>Принял</b> _______________________________</div></div>';
+      '<div class="sign"><b>Отпустил</b> _______________________________<br><b>Принял</b> _______________________________</div></div>';
   }).map(x => wrap ? '<div class="pv-page">' + x + '</div>' : x).join('');
 }
 function findInvoices(nos){ return nos.map(no => S.data.invoices.find(i => i.no === no)).filter(Boolean); }
