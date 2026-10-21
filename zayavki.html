@@ -1,7 +1,10 @@
 <!--
   Salateira · Заявки на расходники (zayavki.html)
-  Версия 1.5
+  Версия 1.6
 
+  1.6 — корректировка утверждённой заявки (количество/комментарий, номера накладных
+        сохраняются); пометка «больше обычного» у Тани; «Как в прошлый раз» в новой
+        заявке. Нужен Code.gs ≥ 1.4.0.
   1.5 — «Просмотреть» у накладных: предпросмотр листов A4 прямо на странице,
         оттуда — печать или «Сохранить как PDF».
   1.4 — подключение Telegram со страницы убрано: ID вносит администратор в таблицу.
@@ -204,7 +207,7 @@
 'use strict';
 
 const API = 'https://script.google.com/macros/s/AKfycbyFzdhhkVtxq8RWyaUzDBZAqe_M7sLbNgYOVMuly4HHmqLzse5b-5yhAE72PjWscjcF/exec';
-const VERSION = '1.5';
+const VERSION = '1.6';
 const LOGO = '<svg class="logo-mark" viewBox="0 0 1059 188" xmlns="http://www.w3.org/2000/svg" aria-label="Salateira"><path d="M611.586 107.247C617.466 33.8785 734.55 28.51 738.384 107.247C738.384 120.54 732.509 125.577 714.354 126.676H646.098C646.098 153.262 666.549 172.691 697.226 159.397C706.94 153.773 712.564 146.301 717.677 143.037C729.692 135.368 742.162 148.332 734.805 159.397C703.361 206.691 601.105 195.699 611.586 107.247ZM551.401 2.06641C560.578 2.06654 568.017 9.50577 568.017 18.6826V53.4678H583.643C590.138 53.4679 595.403 58.733 595.403 65.2275C595.403 71.722 590.138 76.9872 583.643 76.9873H568.017V149.798C569.105 157.145 571.859 158.706 574.615 159.854C577.938 160.877 582.796 161.464 593.277 158.064C603.758 154.666 616.028 172.892 595.322 182.351C574.615 191.809 533.713 188.997 534.735 153.463L534.804 153.449C534.791 153.181 534.785 152.91 534.785 152.639V76.9873H526.379C519.885 76.9873 514.62 71.7221 514.62 65.2275C514.62 58.733 519.885 53.4678 526.379 53.4678H534.785V18.6826C534.785 9.50569 542.224 2.06641 551.401 2.06641ZM783.589 50.1328C792.766 50.133 800.205 57.5722 800.206 66.749V170.028C800.205 179.205 792.766 186.644 783.589 186.645C774.412 186.645 766.973 179.205 766.973 170.028V66.749C766.973 57.5721 774.412 50.1328 783.589 50.1328ZM850.588 50.1328C859.765 50.1328 867.204 57.5721 867.205 66.749V68.8203C878.771 46.6922 897.178 47.8161 912.415 54.3105C937.723 64.0246 922.128 88.4264 907.045 82.9424C877.779 72.3012 869.743 84.3673 867.205 129.686V170.028C867.204 179.205 859.765 186.645 850.588 186.645C841.412 186.644 833.972 179.205 833.972 170.028V66.749C833.972 57.5722 841.412 50.133 850.588 50.1328ZM336.192 0C345.369 4.01144e-07 352.808 7.4391 352.808 16.6162V170.001C352.808 179.178 345.369 186.617 336.192 186.617C327.015 186.617 319.576 179.178 319.576 170.001V16.6162C319.576 7.4392 327.015 0.000164922 336.192 0ZM172.831 73.6973C186.635 44.8099 284.545 34.5843 284.545 88.5244L286.335 150.134C288.015 158.223 291.666 165.459 291.666 171.097C291.665 188.48 268.44 195.127 255.147 167.518C233.929 182.089 218.846 190.526 190.214 183.879C155.192 171.608 152.38 126.103 190.214 113.321L252.846 99.0059C252.846 62.705 206.065 70.8853 197.628 88.5244C187.358 109.998 160.211 100.105 172.831 73.6973ZM388.629 73.6973C402.434 44.8099 500.344 34.5843 500.344 88.5244L502.134 150.134C503.814 158.223 507.464 165.459 507.464 171.097C507.464 188.48 484.239 195.127 470.946 167.518C449.728 182.089 434.645 190.526 406.013 183.879C370.99 171.608 368.178 126.103 406.013 113.321L468.645 99.0059C468.645 62.705 421.864 70.8853 413.427 88.5244C403.157 109.998 376.01 100.105 388.629 73.6973ZM3.59721 46.8545C3.59721 -7.59644 117.868 -19.6115 134.485 38.9297C139.086 59.8927 110.551 74.4792 101.252 46.8545C92.5596 21.0354 44.7549 17.712 37.3413 46.8545C35.8076 73.186 92.3796 73.4214 112.755 83.4121C152.38 102.841 151.869 151.923 117.869 174.675C85.1468 194.615 9.98783 191.037 0.528848 140.42C-4.1049 115.623 23.0256 107.953 30.6949 128.148C44.7548 159.337 70.0459 163.419 90.771 154.99C108.893 147.62 112.5 117.978 90.771 111.531C35.2011 95.0457 3.59722 93.6373 3.59721 46.8545ZM939.535 73.4414C953.339 44.5541 1051.25 34.3286 1051.25 88.2686L1053.04 149.878C1054.72 157.967 1058.37 165.203 1058.37 170.841C1058.37 188.224 1035.15 194.871 1021.85 167.262C1000.63 181.833 985.55 190.27 956.918 183.623C921.896 171.352 919.084 125.849 956.918 113.066L1019.55 98.75C1019.55 62.4493 972.769 70.6295 964.333 88.2686C954.062 109.742 926.915 99.8493 939.535 73.4414ZM252.846 119.201C232.395 126.615 213.733 128.532 207.086 131.472C193.793 137.351 194.56 154.991 207.086 161.638C223.703 169.051 250.801 157.548 252.846 134.54V119.201ZM468.645 119.201C448.194 126.615 429.532 128.532 422.885 131.472C409.592 137.351 410.359 154.991 422.885 161.638C439.502 169.051 466.6 157.548 468.645 134.54V119.201ZM1019.55 118.945C999.099 126.359 980.438 128.277 973.792 131.217C960.498 137.097 961.265 154.735 973.792 161.382C990.408 168.795 1017.51 157.292 1019.55 134.284V118.945ZM676.775 73.7578C658.369 73.7578 649.166 85.2621 646.098 107.247H706.173C704.128 87.0516 695.692 73.7578 676.775 73.7578ZM783.594 2.06641C792.771 2.06644 800.211 9.50571 800.211 18.6826C800.211 27.8597 792.771 35.2988 783.594 35.2988H783.055C773.878 35.2988 766.439 27.8597 766.439 18.6826C766.439 9.50569 773.878 2.06641 783.055 2.06641H783.594Z" fill="#7002FF"/></svg>';
 const TOKEN_KEY = 'slt_zayavki_token';
 const WD = ['вс','пн','вт','ср','чт','пт','сб'];
@@ -459,7 +462,8 @@ VIEWS.new = function(){
   if (existing) html += '<div class="msg warn">На ' + h(ruDay(f.shipDate)) + ' у ресторана уже есть заявка ' + h(existing.id) + ' (' + h(existing.status.toLowerCase()) + '). Вторую создать нельзя. ' +
     (['Черновик','Отправлена','Возвращена'].indexOf(existing.status) >= 0 ? 'Отредактируйте или удалите созданную. <button class="btn btn-primary btn-sm" onclick="App.editReq(\'' + existing.id + '\')">Открыть ' + h(existing.id) + '</button>' : 'Отредактируйте или удалите созданную или создайте заявку на другую дату.') + '</div>';
   if (sel && sel.late) html += '<div class="msg warn">Дедлайн на эту дату прошёл (' + h(ruDT(sel.deadline)) + '). Заявка уйдёт с пометкой «поздняя».</div>';
-  if (prev) html += '<div class="small muted" style="margin-bottom:4px">Справа серым — сколько пришло в прошлый раз (' + h(ruDay(prev.date)) + ').</div>';
+  if (prev) html += '<div class="row" style="align-items:center;margin-bottom:4px"><div class="small muted" style="flex:1 1 240px">Справа серым — сколько пришло в прошлый раз (' + h(ruDay(prev.date)) + ').</div>' +
+    '<button class="btn btn-secondary btn-sm" onclick="App.repeatLast()">Как в прошлый раз</button></div>';
 
   cats.forEach(cat => {
     const list = items.filter(i => (i.category || 'Прочее') === cat && (!q || i.name.toLowerCase().indexOf(q) >= 0));
@@ -600,6 +604,17 @@ VIEWS.inbox = function(){
   return html;
 };
 
+// Сколько ресторан обычно берёт позицию: среднее по утверждённым заявкам за 6 недель до этой отгрузки (нужно ≥ 2).
+function usualQty(place, itemId, exceptId, shipDate){
+  const from = addDays(shipDate, -42);
+  const vals = [];
+  S.data.requests.forEach(r => {
+    if (r.place !== place || r.id === exceptId || r.shipDate < from || r.shipDate >= shipDate || ['Утверждена','Отгружена'].indexOf(r.status) < 0) return;
+    S.data.lines.forEach(l => { if (l.reqId === r.id && l.itemId === itemId && l.approved) vals.push(l.approved); });
+  });
+  return vals.length >= 2 ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+}
+
 function startEditor(r){
   const E = { id: r.id, updatedAt: r.updatedAt, purchaseComment: r.purchaseComment, lines: {}, added: [], addItem: '', addQty: '' };
   linesOf(r.id).forEach(l => { E.lines[l.lineId] = { approved: l.approved === null ? '' : String(l.approved), from: l.from || '', comment: l.comment || '' }; });
@@ -624,12 +639,16 @@ function editor(r){
   linesOf(r.id).forEach(l => {
     const e = E.lines[l.lineId];
     const dis = editable ? '' : ' disabled';
+    const disQ = editable || approved ? '' : ' disabled';
+    const us = l.itemId && l.requested ? usualQty(r.place, l.itemId, r.id, r.shipDate) : null;
+    const over = us !== null && l.requested >= us * (S.data.settings.overuse || 1.5) && l.requested - us >= ((itemById(l.itemId) || {}).mult || 1);
     html += '<tr><td>' + h(l.name) + ' <span class="muted small">' + h(l.unit) + '</span>' + (!l.itemId ? ' <span class="chip st-Возвращена">нет в справочнике</span>' : '') +
+      (over ? ' <span class="chip late" title="Среднее по утверждённым заявкам этого ресторана за 6 недель">больше обычного: обычно ~' + fmtN(us) + '</span>' : '') +
       (l.invoice ? '<div class="small muted">' + h(l.invoice) + '</div>' : '') + '</td>' +
       '<td class="num">' + (l.requested === null ? '—' : fmtN(l.requested)) + '</td>' +
-      '<td><input type="text" inputmode="decimal" style="text-align:right" value="' + h(e.approved) + '" placeholder="' + (l.requested === null ? '' : fmtN(l.requested)) + '"' + dis + ' oninput="App.ed(\'' + l.lineId + '\',\'approved\',this.value)"></td>' +
+      '<td><input type="text" inputmode="decimal" style="text-align:right" value="' + h(e.approved) + '" placeholder="' + (l.requested === null ? '' : fmtN(l.requested)) + '"' + disQ + ' oninput="App.ed(\'' + l.lineId + '\',\'approved\',this.value)"></td>' +
       '<td><select' + dis + ' onchange="App.ed(\'' + l.lineId + '\',\'from\',this.value)"><option value="">—</option>' + srcs.map(s => '<option' + (s === e.from ? ' selected' : '') + '>' + h(s) + '</option>').join('') + '</select></td>' +
-      '<td><input type="text" value="' + h(e.comment) + '" placeholder="например: нет, будет через неделю"' + dis + ' oninput="App.ed(\'' + l.lineId + '\',\'comment\',this.value)"></td></tr>';
+      '<td><input type="text" value="' + h(e.comment) + '" placeholder="например: нет, будет через неделю"' + disQ + ' oninput="App.ed(\'' + l.lineId + '\',\'comment\',this.value)"></td></tr>';
   });
   E.added.forEach((a, k) => {
     const it = itemById(a.itemId);
@@ -654,7 +673,9 @@ function editor(r){
   }
   if (approved) {
     const invs = S.data.invoices.filter(i => i.basis === r.id);
-    html += '<div class="actions">' + (invs.length ? '<button class="btn btn-primary" onclick="App.print(' + h(JSON.stringify(invs.map(i => i.no))) + ')">Печать накладных (' + invs.length + ')</button>' : '') +
+    html += '<div class="small muted" style="margin-top:6px">Не хватило на складе? Поправьте количество и нажмите «Сохранить корректировку»: номера накладных сохранятся, ресторан получит уведомление. Сменить «откуда» — через «Вернуть в работу».</div>';
+    html += '<div class="actions"><button class="btn btn-primary" onclick="App.adjust()">Сохранить корректировку</button>' +
+      (invs.length ? '<button class="btn btn-secondary" onclick="App.print(' + h(JSON.stringify(invs.map(i => i.no))) + ')">Печать накладных (' + invs.length + ')</button>' : '') +
       '<button class="btn btn-secondary" onclick="App.reopen()">Вернуть в работу</button></div>';
     html += '<div class="small muted" style="margin-top:6px">«Вернуть в работу» удалит накладные по этой заявке, чтобы их можно было пересоздать.</div>';
   }
@@ -976,6 +997,16 @@ window.App = {
   free(k, f, v){ S.form.free[k][f] = f === 'qty' ? (num(v) || '') : v; render(); },
   freeAdd(){ S.form.free.push({ name: '', unit: 'шт', qty: '' }); render(); },
   freeDel(k){ S.form.free.splice(k, 1); render(); },
+  repeatLast(){
+    const f = S.form;
+    const prev = prevOrder(f.place, f.id);
+    if (!prev) return;
+    if (Object.keys(f.qty).length && !confirm('Заменить количества в форме прошлым заказом?')) return;
+    f.qty = {};
+    Object.keys(prev.map).forEach(id => { const it = itemById(id); if (it && it.active && prev.map[id] > 0) f.qty[id] = roundUp(id, prev.map[id]); });
+    S.msg = { kind: 'ok', text: 'Заполнено как ' + ruDay(prev.date) + ' — проверьте и поправьте' };
+    render();
+  },
   cancelEdit(){ S.form = null; S.tab = isRest() ? 'mine' : 'inbox'; render(); },
   saveReq(submit){
     const f = S.form;
@@ -1018,6 +1049,17 @@ window.App = {
       const res = await api('reviewRequest', { id: E.id, updatedAt: r.updatedAt, decision: decision, purchaseComment: E.purchaseComment, lines: lines });
       S.ed = null; await reload(); return res;
     }, res => decision === 'approve' ? 'Утверждено. Накладные: ' + res.invoices.join(', ') : decision === 'return' ? 'Заявка возвращена ресторану' : 'Сохранено');
+  },
+  adjust(){
+    const E = S.ed;
+    const r = S.data.requests.find(x => x.id === E.id);
+    const lines = linesOf(E.id).filter(l => {
+      const e = E.lines[l.lineId];
+      return num(e.approved) !== (l.approved || 0) || str(e.comment) !== str(l.comment);
+    }).map(l => ({ lineId: l.lineId, approved: num(E.lines[l.lineId].approved), comment: str(E.lines[l.lineId].comment) }));
+    if (!lines.length) { S.msg = { kind: 'warn', text: 'Изменений нет' }; return render(); }
+    run(async () => { const res = await api('adjustApproved', { id: E.id, updatedAt: r.updatedAt, lines: lines }); S.ed = null; await reload(); return res; },
+      res => 'Корректировка сохранена (строк: ' + res.changed + '). Ресторан получит уведомление');
   },
   reopen(){
     if (!confirm('Снять утверждение? Накладные по этой заявке будут удалены.')) return;
