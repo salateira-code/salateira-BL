@@ -1,7 +1,11 @@
 <!--
   Salateira · Заявки на расходники (zayavki.html)
-  Версия 2.2
+  Версия 2.3
 
+  2.3 — «Поставки» у закупок: список поставок (источник + дата) вместо заявок по ресторанам;
+        одна общая таблица позиций с разбивкой по ресторанам, «Утвердить поставку» сразу для всех,
+        возврат одного ресторана; сохранение быстрее — свежие данные приходят в ответе.
+        Нужен Code.gs ≥ 2.1.0.
   2.2 — «Заказ»: позиции, которые уже у закупок, показаны как «на 27.10 заказано N» без правки,
         остальные можно дозаказать до дедлайна (уйдёт отдельной заявкой). Нужен Code.gs ≥ 2.0.2.
   2.1 — время приёма без «1899 года»; дни поставки — переключатели по дням недели; «Собрать»:
@@ -247,7 +251,7 @@
 'use strict';
 
 const API = 'https://script.google.com/macros/s/AKfycbyFzdhhkVtxq8RWyaUzDBZAqe_M7sLbNgYOVMuly4HHmqLzse5b-5yhAE72PjWscjcF/exec';
-const VERSION = '2.2';
+const VERSION = '2.3';
 const LOGO = '<svg class="logo-mark" viewBox="0 0 1059 188" xmlns="http://www.w3.org/2000/svg" aria-label="Salateira"><path d="M611.586 107.247C617.466 33.8785 734.55 28.51 738.384 107.247C738.384 120.54 732.509 125.577 714.354 126.676H646.098C646.098 153.262 666.549 172.691 697.226 159.397C706.94 153.773 712.564 146.301 717.677 143.037C729.692 135.368 742.162 148.332 734.805 159.397C703.361 206.691 601.105 195.699 611.586 107.247ZM551.401 2.06641C560.578 2.06654 568.017 9.50577 568.017 18.6826V53.4678H583.643C590.138 53.4679 595.403 58.733 595.403 65.2275C595.403 71.722 590.138 76.9872 583.643 76.9873H568.017V149.798C569.105 157.145 571.859 158.706 574.615 159.854C577.938 160.877 582.796 161.464 593.277 158.064C603.758 154.666 616.028 172.892 595.322 182.351C574.615 191.809 533.713 188.997 534.735 153.463L534.804 153.449C534.791 153.181 534.785 152.91 534.785 152.639V76.9873H526.379C519.885 76.9873 514.62 71.7221 514.62 65.2275C514.62 58.733 519.885 53.4678 526.379 53.4678H534.785V18.6826C534.785 9.50569 542.224 2.06641 551.401 2.06641ZM783.589 50.1328C792.766 50.133 800.205 57.5722 800.206 66.749V170.028C800.205 179.205 792.766 186.644 783.589 186.645C774.412 186.645 766.973 179.205 766.973 170.028V66.749C766.973 57.5721 774.412 50.1328 783.589 50.1328ZM850.588 50.1328C859.765 50.1328 867.204 57.5721 867.205 66.749V68.8203C878.771 46.6922 897.178 47.8161 912.415 54.3105C937.723 64.0246 922.128 88.4264 907.045 82.9424C877.779 72.3012 869.743 84.3673 867.205 129.686V170.028C867.204 179.205 859.765 186.645 850.588 186.645C841.412 186.644 833.972 179.205 833.972 170.028V66.749C833.972 57.5722 841.412 50.133 850.588 50.1328ZM336.192 0C345.369 4.01144e-07 352.808 7.4391 352.808 16.6162V170.001C352.808 179.178 345.369 186.617 336.192 186.617C327.015 186.617 319.576 179.178 319.576 170.001V16.6162C319.576 7.4392 327.015 0.000164922 336.192 0ZM172.831 73.6973C186.635 44.8099 284.545 34.5843 284.545 88.5244L286.335 150.134C288.015 158.223 291.666 165.459 291.666 171.097C291.665 188.48 268.44 195.127 255.147 167.518C233.929 182.089 218.846 190.526 190.214 183.879C155.192 171.608 152.38 126.103 190.214 113.321L252.846 99.0059C252.846 62.705 206.065 70.8853 197.628 88.5244C187.358 109.998 160.211 100.105 172.831 73.6973ZM388.629 73.6973C402.434 44.8099 500.344 34.5843 500.344 88.5244L502.134 150.134C503.814 158.223 507.464 165.459 507.464 171.097C507.464 188.48 484.239 195.127 470.946 167.518C449.728 182.089 434.645 190.526 406.013 183.879C370.99 171.608 368.178 126.103 406.013 113.321L468.645 99.0059C468.645 62.705 421.864 70.8853 413.427 88.5244C403.157 109.998 376.01 100.105 388.629 73.6973ZM3.59721 46.8545C3.59721 -7.59644 117.868 -19.6115 134.485 38.9297C139.086 59.8927 110.551 74.4792 101.252 46.8545C92.5596 21.0354 44.7549 17.712 37.3413 46.8545C35.8076 73.186 92.3796 73.4214 112.755 83.4121C152.38 102.841 151.869 151.923 117.869 174.675C85.1468 194.615 9.98783 191.037 0.528848 140.42C-4.1049 115.623 23.0256 107.953 30.6949 128.148C44.7548 159.337 70.0459 163.419 90.771 154.99C108.893 147.62 112.5 117.978 90.771 111.531C35.2011 95.0457 3.59722 93.6373 3.59721 46.8545ZM939.535 73.4414C953.339 44.5541 1051.25 34.3286 1051.25 88.2686L1053.04 149.878C1054.72 157.967 1058.37 165.203 1058.37 170.841C1058.37 188.224 1035.15 194.871 1021.85 167.262C1000.63 181.833 985.55 190.27 956.918 183.623C921.896 171.352 919.084 125.849 956.918 113.066L1019.55 98.75C1019.55 62.4493 972.769 70.6295 964.333 88.2686C954.062 109.742 926.915 99.8493 939.535 73.4414ZM252.846 119.201C232.395 126.615 213.733 128.532 207.086 131.472C193.793 137.351 194.56 154.991 207.086 161.638C223.703 169.051 250.801 157.548 252.846 134.54V119.201ZM468.645 119.201C448.194 126.615 429.532 128.532 422.885 131.472C409.592 137.351 410.359 154.991 422.885 161.638C439.502 169.051 466.6 157.548 468.645 134.54V119.201ZM1019.55 118.945C999.099 126.359 980.438 128.277 973.792 131.217C960.498 137.097 961.265 154.735 973.792 161.382C990.408 168.795 1017.51 157.292 1019.55 134.284V118.945ZM676.775 73.7578C658.369 73.7578 649.166 85.2621 646.098 107.247H706.173C704.128 87.0516 695.692 73.7578 676.775 73.7578ZM783.594 2.06641C792.771 2.06644 800.211 9.50571 800.211 18.6826C800.211 27.8597 792.771 35.2988 783.594 35.2988H783.055C773.878 35.2988 766.439 27.8597 766.439 18.6826C766.439 9.50569 773.878 2.06641 783.055 2.06641H783.594Z" fill="#7002FF"/></svg>';
 const TOKEN_KEY = 'slt_zayavki_token';
 const WD = ['вс','пн','вт','ср','чт','пт','сб'];
@@ -263,7 +267,9 @@ const S = {
   token: store.get(TOKEN_KEY), data: null, tab: null, busy: false, msg: null,
   form: null,          // новая/редактируемая заявка
   mineSel: null,       // выбранная заявка в «Мои заявки»
-  inbox: { date: '', src: '*', status: 'active', sel: null },
+  inbox: { status: 'active', sel: null, sup: null },
+  sup: null,           // редактор поставки
+  pendingData: null,   // свежие данные из ответа на сохранение
   cart: null,          // заказ ресторана
   plc: { sel: null, f: null },   // места
   msgTab: 'driver',
@@ -305,6 +311,7 @@ function movOf(no){ return S.data.movements.filter(m => m.no === no); }
 /* ============================== API ============================== */
 async function api(action, payload){
   const body = Object.assign({ action: action, token: S.token }, payload || {});
+  if (action !== 'bootstrap' && action !== 'login') body.withData = true;
   let res;
   try {
     res = await fetch(API, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) });
@@ -315,6 +322,7 @@ async function api(action, payload){
     if (j.auth) { logout(true); }
     throw new Error(j.error || 'Ошибка');
   }
+  if (j.data) { S.pendingData = j.data; delete j.data; }
   return j;
 }
 
@@ -323,7 +331,8 @@ async function run(fn, okText){
   S.busy = true; S.msg = null; cover(true);
   try {
     const r = await fn();
-    if (okText) S.msg = { kind: 'ok', text: typeof okText === 'function' ? okText(r) : okText };
+    S.msgKind = null;
+    if (okText) { const t = typeof okText === 'function' ? okText(r) : okText; S.msg = { kind: S.msgKind || 'ok', text: t }; }
     return r;
   } catch(e) {
     S.msg = { kind: 'err', text: e.message };
@@ -343,7 +352,9 @@ function showDetail(){
 }
 
 async function reload(){
-  const d = await api('bootstrap');
+  let d = S.pendingData;
+  S.pendingData = null;
+  if (!d) d = await api('bootstrap');
   S.data = d;
   if (S.cart && !cartDirty()) S.cart = null;
   if (!S.tab || !tabs().some(t => t.id === S.tab)) S.tab = tabs()[0].id;
@@ -410,8 +421,8 @@ function tabs(){
     T.push({ id: 'transfer', title: 'Перемещение' });
     T.push({ id: 'invoices', title: 'Накладные' });
   } else if (r === 'Закупки' || r === 'Админ') {
-    const nNew = S.data ? S.data.requests.filter(q => q.status === 'Отправлена').length : 0;
-    T.push({ id: 'inbox', title: 'Заявки', cnt: nNew });
+    const nNew = S.data ? supplies().filter(s => s.reqs.some(r => ACTIVE_ST.indexOf(r.status) >= 0)).length : 0;
+    T.push({ id: 'inbox', title: 'Поставки', cnt: nNew });
     T.push({ id: 'summary', title: 'Свод на дату' });
     T.push({ id: 'messages', title: 'Сообщения' });
     T.push({ id: 'req', title: S.form && S.form.id ? 'Заявка ' + S.form.id : 'Заявка вручную' });
@@ -432,7 +443,7 @@ function tabs(){
     T.push({ id: 'tasks', title: 'Собрать', cnt: nTasks });
     T.push({ id: 'invoices', title: 'Накладные' });
   } else {
-    T.push({ id: 'inbox', title: 'Заявки' });
+    T.push({ id: 'inbox', title: 'Поставки' });
     T.push({ id: 'summary', title: 'Свод на дату' });
     T.push({ id: 'movements', title: 'Перемещения' });
     T.push({ id: 'invoices', title: 'Накладные' });
@@ -441,7 +452,13 @@ function tabs(){
 }
 
 /* ============================== ОТРИСОВКА ============================== */
+// Пока кнопка нажата, перерисовку откладываем: иначе после правки поля (change) кнопка
+// заменяется под курсором и клик теряется.
+let holdRender = false, renderPending = false;
+document.addEventListener('pointerdown', e => { if (e.target.closest && e.target.closest('button, .btn, .card, .dt, tr.click')) holdRender = true; }, true);
+window.addEventListener('pointerup', () => setTimeout(() => { holdRender = false; if (renderPending) { renderPending = false; render(); } }, 0), true);
 function render(){
+  if (holdRender) { renderPending = true; return; }
   if (!S.token || !S.data) return renderLogin();
   const u = S.data.user;
   const T = tabs();
@@ -650,52 +667,128 @@ function requestDetail(r, mode){
   return html;
 }
 
-/* ---------- Входящие заявки (закупки / руководитель) ---------- */
+/* ---------- Поставки (закупки): единица работы — источник + дата ---------- */
 const ACTIVE_ST = ['Отправлена','На проверке','Возвращена'];
 function srcLabel(src){ return src || 'без источника'; }
+function supKey(src, date){ return (src || '') + '|' + date; }
+function supplies(){
+  const g = {};
+  S.data.requests.filter(r => r.status !== 'Черновик').forEach(r => {
+    const k = supKey(r.source, r.shipDate);
+    (g[k] = g[k] || { key: k, source: r.source || '', date: r.shipDate, reqs: [] }).reqs.push(r);
+  });
+  return Object.values(g);
+}
+function supDeadline(src, date){ const sp = place(src); return sp && sp.deliveries ? sp.deliveries.find(x => x.date === date) : null; }
+
 VIEWS.inbox = function(){
   const I = S.inbox;
-  let reqs = S.data.requests.slice();
-  const dates = uniq(reqs.map(r => r.shipDate)).sort().reverse();
-  const srcs = uniq(reqs.map(r => r.source || '')).sort();
-  if (I.date) reqs = reqs.filter(r => r.shipDate === I.date);
-  if (I.src !== undefined && I.src !== '*') reqs = reqs.filter(r => (r.source || '') === I.src);
-  if (I.status === 'active') reqs = reqs.filter(r => ACTIVE_ST.indexOf(r.status) >= 0);
-  else if (I.status) reqs = reqs.filter(r => r.status === I.status);
-  reqs.sort((a,b) => a.shipDate.localeCompare(b.shipDate) || (a.source || '').localeCompare(b.source || '') || a.place.localeCompare(b.place));
-  let html = '<div class="split wide"><div class="panel"><h2 class="panel-title">Заявки</h2><div class="row">' +
-    '<div class="field"><label>Поставка</label><select onchange="App.inbox(\'date\', this.value)"><option value="">все даты</option>' +
-    dates.map(d => '<option value="' + d + '"' + (d === I.date ? ' selected' : '') + '>' + h(ruDay(d)) + '</option>').join('') + '</select></div>' +
-    '<div class="field"><label>Источник</label><select onchange="App.inbox(\'src\', this.value)"><option value="*">все</option>' +
-    srcs.map(s => '<option value="' + h(s) + '"' + (I.src === s ? ' selected' : '') + '>' + h(srcLabel(s)) + '</option>').join('') + '</select></div>' +
-    '<div class="field"><label>Статус</label><select onchange="App.inbox(\'status\', this.value)">' +
-    [['active','В работе'],['','Все'],['Отправлена','Отправлена'],['На проверке','На проверке'],['Возвращена','Возвращена'],['Утверждена','Утверждена'],['Отгружена','Отгружена']]
-      .map(o => '<option value="' + o[0] + '"' + (o[0] === I.status ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select></div></div>';
-  if (!reqs.length) html += '<div class="empty">Нет заявок</div>';
+  // Отдельная заявка (из поставки «Открыть отдельно» или руководителю)
+  const single = I.sel ? S.data.requests.find(x => x.id === I.sel) : null;
+  let list = supplies();
+  if (I.status === 'active') list = list.filter(s => s.reqs.some(r => ACTIVE_ST.indexOf(r.status) >= 0));
+  else if (I.status === 'done') list = list.filter(s => s.reqs.every(r => ACTIVE_ST.indexOf(r.status) < 0));
+  list.sort((a, b) => a.date.localeCompare(b.date) || a.source.localeCompare(b.source));
+  if (I.sup && !list.some(s => s.key === I.sup) && !single) I.sup = null;
+  let html = '<div class="split wide"><div class="panel"><h2 class="panel-title">Поставки</h2>' +
+    '<div class="field"><select onchange="App.inbox(\'status\', this.value)">' + [['active','В работе'],['done','Утверждённые'],['','Все']]
+      .map(o => '<option value="' + o[0] + '"' + (o[0] === I.status ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select></div>';
+  if (!list.length) html += '<div class="empty">Нет поставок</div>';
   else {
     html += '<div class="card-list">';
-    let lastGroup = '';
-    reqs.forEach(r => {
-      const g = r.shipDate + '|' + (r.source || '');
-      if (g !== lastGroup) {
-        lastGroup = g;
-        const sp = place(r.source);
-        const d = sp && sp.deliveries ? sp.deliveries.find(x => x.date === r.shipDate) : null;
-        html += '<div class="small" style="margin:8px 0 0;font-weight:700;color:var(--accent-dark)">' + h(srcLabel(r.source)) + ' · ' + h(ruDay(r.shipDate)) +
-          (d ? ' <span class="muted" style="font-weight:500">· приём ' + (d.closed ? 'закрыт' : 'до ' + h(dlText(d))) + '</span>' : '') + '</div>';
-      }
-      html += '<div class="card' + (r.id === I.sel ? ' sel' : '') + '" onclick="App.open(\'' + r.id + '\')"><div class="top"><span class="title">' + h(r.place) + '</span>' + chip(r.status) + '</div>' +
-        '<div class="small muted">' + h(r.id) + ' · позиций: ' + linesOf(r.id).length + ' · ' + h(ruDT(r.updatedAt)) + '</div></div>';
+    let lastDate = '';
+    list.forEach(s => {
+      if (s.date !== lastDate) { lastDate = s.date; html += '<div class="small" style="margin:8px 0 0;font-weight:700;color:var(--accent-dark)">' + h(ruDay(s.date)) + (s.date === todayYmd() ? ' · сегодня' : '') + '</div>'; }
+      const d = supDeadline(s.source, s.date);
+      const wait = s.reqs.filter(r => ACTIVE_ST.indexOf(r.status) >= 0).length;
+      const pos = s.reqs.reduce((a, r) => a + linesOf(r.id).length, 0);
+      html += '<div class="card' + (s.key === I.sup && !single ? ' sel' : '') + '" onclick="App.openSup(\'' + h(s.key) + '\')"><div class="top"><span class="title">' + h(srcLabel(s.source)) + '</span>' +
+        (wait ? '<span class="chip st-Отправлена">ждут: ' + wait + '</span>' : '<span class="chip st-Утверждена">готово</span>') + '</div>' +
+        '<div class="small muted">' + s.reqs.length + ' рест. · ' + pos + ' поз.' + (d ? ' · приём ' + (d.closed ? 'закрыт' : 'до ' + h(dlText(d))) : '') + '</div></div>';
     });
     html += '</div>';
   }
   html += '</div><div>';
-  const r = S.data.requests.find(x => x.id === I.sel);
-  if (r) html += canEditRequests() ? editor(r) : requestDetail(r, 'view');
-  else html += '<div class="panel"><div class="empty">Выберите заявку слева</div></div>';
-  html += '</div></div>';
-  return html;
+  if (single) html += '<div class="actions" style="margin:0 0 8px"><button class="btn btn-secondary btn-sm" onclick="App.backToSup()">← К поставке</button></div>' + (canEditRequests() ? editor(single) : requestDetail(single, 'view'));
+  else if (I.sup) { const s = supplies().find(x => x.key === I.sup); html += s ? supplyView(s) : ''; }
+  else html += '<div class="panel"><div class="empty">Выберите поставку слева</div></div>';
+  return html + '</div></div>';
 };
+
+function startSupply(s){
+  const E = { key: s.key, lines: {}, items: {}, versions: {}, comment: '' };
+  s.reqs.forEach(r => {
+    E.versions[r.id] = r.updatedAt;
+    linesOf(r.id).forEach(l => {
+      E.lines[l.lineId] = { approved: l.approved !== null ? String(l.approved) : (l.requested !== null ? String(l.requested) : ''), comment: l.comment || '', pack: l.pack || '', from: l.from || '' };
+    });
+  });
+  S.sup = E;
+}
+function supplyView(s){
+  const sig = s.reqs.map(r => r.id + r.updatedAt).join();
+  if (!S.sup || S.sup.key !== s.key || S.sup.sig !== sig) { startSupply(s); S.sup.sig = sig; }
+  const E = S.sup;
+  const d = supDeadline(s.source, s.date);
+  const sp = place(s.source);
+  const canEdit = r => ['Отправлена','На проверке'].indexOf(r.status) >= 0;
+  let html = '<div class="panel"><h2 class="panel-title">' + h(srcLabel(s.source)) + ' · ' + h(ruDay(s.date)) + '</h2>';
+  html += '<div class="small muted" style="margin:-6px 0 10px">' + (d ? 'Приём ' + (d.closed ? 'закрыт' : 'открыт до ' + h(dlText(d)) + ' — рестораны ещё могут дозаказать') : '') + (sp && sp.contact ? ' · ' + h(sp.contact) : '') + '</div>';
+  // Рестораны поставки
+  html += '<div class="card-list" style="margin-bottom:12px">' + s.reqs.slice().sort((a, b) => a.place.localeCompare(b.place)).map(r =>
+    '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;border:1px solid var(--line);border-radius:8px;padding:6px 10px">' +
+    '<b>' + h(r.place) + '</b> ' + chip(r.status) + ' <span class="small muted">' + h(r.id) + ' · поз.: ' + linesOf(r.id).length + '</span>' +
+    (r.comment ? '<span class="small" style="color:var(--blue)">«' + h(r.comment) + '»</span>' : '') +
+    '<span style="margin-left:auto;display:flex;gap:6px">' +
+    (canEdit(r) ? '<button class="btn btn-danger btn-sm" onclick="App.supReturn(\'' + r.id + '\')">Вернуть</button>' : '') +
+    '<button class="btn btn-secondary btn-sm" onclick="App.openReq(\'' + r.id + '\')">Открыть отдельно</button></span></div>').join('') + '</div>';
+
+  // Позиции: строка позиции + рестораны под ней
+  const items = {};
+  s.reqs.forEach(r => linesOf(r.id).forEach(l => {
+    const k = (l.itemId || '') + '|' + l.name;
+    (items[k] = items[k] || { key: k, itemId: l.itemId, name: l.name, unit: l.unit, rows: [] }).rows.push({ r, l });
+  }));
+  const keys = Object.keys(items).sort((a, b) => { const ia = itemById(items[a].itemId), ib = itemById(items[b].itemId); return ((ia && ia.order) || 1e9) - ((ib && ib.order) || 1e9) || a.localeCompare(b); });
+  html += '<div class="t-wrap"><table class="t ed-t"><thead><tr><th>Позиция / ресторан</th><th class="num">Запрошено</th><th style="width:130px">Фасовка</th><th class="num" style="width:96px">Утвердить</th><th style="width:150px">Откуда</th><th>Комментарий ресторану</th></tr></thead><tbody>';
+  keys.forEach(k => {
+    const g = items[k], it = g.itemId ? itemById(g.itemId) : null;
+    const editable = g.rows.filter(x => canEdit(x.r));
+    const e0 = editable.length ? E.lines[editable[0].l.lineId] : E.lines[g.rows[0].l.lineId];
+    const totReq = g.rows.reduce((a, x) => a + (x.l.requested || 0), 0);
+    const totAp = g.rows.reduce((a, x) => a + num(E.lines[x.l.lineId].approved), 0);
+    const dis = editable.length ? '' : ' disabled';
+    html += '<tr style="background:var(--hover)"><td><b>' + h(g.name) + '</b>' + (!g.itemId ? ' <span class="chip st-Возвращена">нет в справочнике</span>' : '') + '</td>' +
+      '<td class="num"><b>' + fmtN(totReq) + '</b></td>' +
+      '<td>' + packSelect(it, e0.pack || g.unit, 'App.supItem(\'' + h(k) + '\',\'pack\',this.value)', dis) + '</td>' +
+      '<td class="num"><b data-tot="' + h(k) + '">' + fmtN(totAp) + '</b></td>' +
+      '<td><select' + dis + ' onchange="App.supItem(\'' + h(k) + '\',\'from\',this.value)">' + srcOptions('', e0.from) + '</select></td><td></td></tr>';
+    g.rows.forEach(x => { E.itemOf = E.itemOf || {}; E.itemOf[x.l.lineId] = k; });
+    g.rows.sort((a, b) => a.r.place.localeCompare(b.r.place)).forEach(x => {
+      const e = E.lines[x.l.lineId], ed = canEdit(x.r), dd = ed ? '' : ' disabled';
+      const us = x.l.itemId && x.l.requested ? usualQty(x.r.place, x.l.itemId, x.r.id, x.r.shipDate) : null;
+      const over = us !== null && x.l.requested >= us * (S.data.settings.overuse || 1.5) && x.l.requested - us >= ((it || {}).mult || 1);
+      html += '<tr><td style="padding-left:22px">' + h(x.r.place) + (ed ? '' : ' <span class="small muted">' + h(x.r.status.toLowerCase()) + '</span>') +
+        (over ? ' <span class="chip late">больше обычного: ~' + fmtN(us) + '</span>' : '') + '</td>' +
+        '<td class="num">' + (x.l.requested === null ? '—' : fmtN(x.l.requested)) + '</td><td class="small muted">' + h(e.pack || '') + '</td>' +
+        '<td><input type="text" inputmode="decimal" style="text-align:right" value="' + h(e.approved) + '"' + dd + ' oninput="App.supLine(\'' + x.l.lineId + '\',\'approved\',this.value)"></td>' +
+        '<td class="small muted">' + h(e.from !== e0.from ? e.from : '') + '</td>' +
+        '<td><input type="text" value="' + h(e.comment) + '"' + dd + ' oninput="App.supLine(\'' + x.l.lineId + '\',\'comment\',this.value)"></td></tr>';
+    });
+  });
+  html += '</tbody></table></div>';
+  const nEdit = s.reqs.filter(canEdit).length;
+  if (nEdit) {
+    html += '<div class="small muted" style="margin-top:6px">«Утвердить» заполнено как запросили. 0 = не отгружаем (напишите ресторану почему). Фасовка и «откуда» меняются сразу для всех ресторанов позиции.</div>';
+    html += '<div class="actions"><button class="btn btn-primary" onclick="App.supSave(true)">Утвердить поставку (' + nEdit + ')</button>' +
+      '<button class="btn btn-secondary" onclick="App.supSave(false)">Сохранить правки, утвердить позже</button></div>' +
+      '<div class="small muted" style="margin-top:8px;line-height:1.6"><b>Утвердить</b> — заявки всех ресторанов готовы: создаются накладные (если везёт склад), ресторанам уходят уведомления, позиции поставщиков попадают в «Сообщения».<br>' +
+      '<b>Сохранить правки</b> — только запомнить изменения; заявки остаются у вас «На проверке», рестораны их уже не меняют.</div>';
+  } else {
+    html += '<div class="msg ok">Все заявки поставки утверждены.' + (sp && sp.type === 'Поставщик' ? ' Сообщение поставщику — во вкладке «Сообщения».' : '') + '</div>';
+  }
+  return html + '</div>';
+}
 
 // Сколько ресторан обычно берёт позицию: среднее по утверждённым заявкам за 6 недель до этой поставки (нужно ≥ 2).
 function usualQty(placeName, itemId, exceptId, shipDate){
@@ -1364,6 +1457,47 @@ window.App = {
   // закупки
   inbox(k, v){ S.inbox[k] = v; render(); },
   open(id){ S.inbox.sel = id; S.msg = null; S.ed = null; render(); showDetail(); },
+  openSup(k){ S.inbox.sup = k; S.inbox.sel = null; S.sup = null; S.msg = null; render(); showDetail(); },
+  openReq(id){ S.inbox.sel = id; S.ed = null; S.msg = null; render(); showDetail(); },
+  backToSup(){ S.inbox.sel = null; S.ed = null; render(); showDetail(); },
+  supLine(lineId, k, v){
+    S.sup.lines[lineId][k] = v;
+    if (k !== 'approved') return;
+    // Итог по позиции пересчитываем на месте, без перерисовки (чтобы не сбить клик по кнопке)
+    const key = S.sup.itemOf && S.sup.itemOf[lineId];
+    const el = key && Array.from(document.querySelectorAll('[data-tot]')).find(x => x.getAttribute('data-tot') === key);
+    if (el) el.textContent = fmtN(Object.keys(S.sup.itemOf).filter(id => S.sup.itemOf[id] === key).reduce((a, id) => a + num(S.sup.lines[id].approved), 0));
+  },
+  supItem(key, k, v){
+    const s = supplies().find(x => x.key === S.inbox.sup); if (!s) return;
+    s.reqs.forEach(r => { if (['Отправлена','На проверке'].indexOf(r.status) < 0) return; linesOf(r.id).forEach(l => {
+      if ((l.itemId || '') + '|' + l.name !== key) return;
+      const e = S.sup.lines[l.lineId]; e[k] = v;
+      if (k === 'pack') { const it = itemById(l.itemId); const p = it && it.packs ? it.packs.find(x => x.name === v) : null; if (p && p.supplier) e.from = p.supplier; }
+    }); });
+    render();
+  },
+  supReturn(id){
+    const r = S.data.requests.find(x => x.id === id);
+    const why = prompt('Что исправить ресторану «' + r.place + '»? Текст увидит ресторан.');
+    if (why === null) return;
+    if (!str(why)) { S.msg = { kind: 'err', text: 'Напишите, что нужно исправить' }; render(); return window.scrollTo({ top: 0, behavior: 'smooth' }); }
+    run(async () => { await api('reviewRequest', { id: id, updatedAt: r.updatedAt, decision: 'return', purchaseComment: str(why) }); S.sup = null; await reload(); }, 'Заявка ' + r.place + ' возвращена ресторану');
+  },
+  supSave(approve){
+    const s = supplies().find(x => x.key === S.inbox.sup); if (!s) return;
+    const E = S.sup, lines = [], versions = {};
+    s.reqs.filter(r => ['Отправлена','На проверке'].indexOf(r.status) >= 0).forEach(r => {
+      versions[r.id] = r.updatedAt;
+      linesOf(r.id).forEach(l => { const e = E.lines[l.lineId]; lines.push({ lineId: l.lineId, approved: e.approved, comment: e.comment, pack: e.pack, from: e.from }); });
+    });
+    run(async () => { const res = await api('saveSupply', { lines: lines, versions: versions, approve: approve }); S.sup = null; await reload(); return res; }, res => {
+      const ok = res.results.filter(x => x.ok), bad = res.results.filter(x => !x.ok);
+      if (bad.length) S.msgKind = 'warn';
+      return (approve ? 'Утверждено' : 'Сохранено') + ': ' + (ok.map(x => x.place).join(', ') || '—') +
+        (bad.length ? '\nНе прошли: ' + bad.map(x => x.place + ' — ' + x.error).join('; ') : '');
+    });
+  },
   ed(lineId, k, v){ S.ed.lines[lineId][k] = v; },
   edPack(lineId, v){
     const e = S.ed.lines[lineId], l = S.data.lines.find(x => x.lineId === lineId), it = l && itemById(l.itemId);
