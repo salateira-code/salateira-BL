@@ -1,7 +1,10 @@
 <!--
   Salateira · Заявки на расходники (zayavki.html)
-  Версия 2.6
+  Версия 2.7
 
+  2.7 — вкладка «Закупка на склад» (заранее у поставщика, сразу утверждена, видно остаток и сколько нужно
+        ресторанам) и «Ожидаемые приходы». Остатки показываются только в местах хранения, не в ресторанах.
+        В пересчётах — «было с приходом» и «расход». Нужен Code.gs ≥ 2.5.0.
   2.6 — рестораны сами присылают пересчёт (вкладка «Пересчёт»); в остатки он попадает только после
         утверждения Таней («Остатки → Пересчёты ресторанов»). Нужен Code.gs ≥ 2.4.0.
   2.5 — инвентаризацию можно вводить в фасовке (рулоны, банки) — пересчёт в единицу учёта.
@@ -262,7 +265,7 @@
 'use strict';
 
 const API = 'https://script.google.com/macros/s/AKfycbyFzdhhkVtxq8RWyaUzDBZAqe_M7sLbNgYOVMuly4HHmqLzse5b-5yhAE72PjWscjcF/exec';
-const VERSION = '2.6';
+const VERSION = '2.7';
 const LOGO = '<svg class="logo-mark" viewBox="0 0 1059 188" xmlns="http://www.w3.org/2000/svg" aria-label="Salateira"><path d="M611.586 107.247C617.466 33.8785 734.55 28.51 738.384 107.247C738.384 120.54 732.509 125.577 714.354 126.676H646.098C646.098 153.262 666.549 172.691 697.226 159.397C706.94 153.773 712.564 146.301 717.677 143.037C729.692 135.368 742.162 148.332 734.805 159.397C703.361 206.691 601.105 195.699 611.586 107.247ZM551.401 2.06641C560.578 2.06654 568.017 9.50577 568.017 18.6826V53.4678H583.643C590.138 53.4679 595.403 58.733 595.403 65.2275C595.403 71.722 590.138 76.9872 583.643 76.9873H568.017V149.798C569.105 157.145 571.859 158.706 574.615 159.854C577.938 160.877 582.796 161.464 593.277 158.064C603.758 154.666 616.028 172.892 595.322 182.351C574.615 191.809 533.713 188.997 534.735 153.463L534.804 153.449C534.791 153.181 534.785 152.91 534.785 152.639V76.9873H526.379C519.885 76.9873 514.62 71.7221 514.62 65.2275C514.62 58.733 519.885 53.4678 526.379 53.4678H534.785V18.6826C534.785 9.50569 542.224 2.06641 551.401 2.06641ZM783.589 50.1328C792.766 50.133 800.205 57.5722 800.206 66.749V170.028C800.205 179.205 792.766 186.644 783.589 186.645C774.412 186.645 766.973 179.205 766.973 170.028V66.749C766.973 57.5721 774.412 50.1328 783.589 50.1328ZM850.588 50.1328C859.765 50.1328 867.204 57.5721 867.205 66.749V68.8203C878.771 46.6922 897.178 47.8161 912.415 54.3105C937.723 64.0246 922.128 88.4264 907.045 82.9424C877.779 72.3012 869.743 84.3673 867.205 129.686V170.028C867.204 179.205 859.765 186.645 850.588 186.645C841.412 186.644 833.972 179.205 833.972 170.028V66.749C833.972 57.5722 841.412 50.133 850.588 50.1328ZM336.192 0C345.369 4.01144e-07 352.808 7.4391 352.808 16.6162V170.001C352.808 179.178 345.369 186.617 336.192 186.617C327.015 186.617 319.576 179.178 319.576 170.001V16.6162C319.576 7.4392 327.015 0.000164922 336.192 0ZM172.831 73.6973C186.635 44.8099 284.545 34.5843 284.545 88.5244L286.335 150.134C288.015 158.223 291.666 165.459 291.666 171.097C291.665 188.48 268.44 195.127 255.147 167.518C233.929 182.089 218.846 190.526 190.214 183.879C155.192 171.608 152.38 126.103 190.214 113.321L252.846 99.0059C252.846 62.705 206.065 70.8853 197.628 88.5244C187.358 109.998 160.211 100.105 172.831 73.6973ZM388.629 73.6973C402.434 44.8099 500.344 34.5843 500.344 88.5244L502.134 150.134C503.814 158.223 507.464 165.459 507.464 171.097C507.464 188.48 484.239 195.127 470.946 167.518C449.728 182.089 434.645 190.526 406.013 183.879C370.99 171.608 368.178 126.103 406.013 113.321L468.645 99.0059C468.645 62.705 421.864 70.8853 413.427 88.5244C403.157 109.998 376.01 100.105 388.629 73.6973ZM3.59721 46.8545C3.59721 -7.59644 117.868 -19.6115 134.485 38.9297C139.086 59.8927 110.551 74.4792 101.252 46.8545C92.5596 21.0354 44.7549 17.712 37.3413 46.8545C35.8076 73.186 92.3796 73.4214 112.755 83.4121C152.38 102.841 151.869 151.923 117.869 174.675C85.1468 194.615 9.98783 191.037 0.528848 140.42C-4.1049 115.623 23.0256 107.953 30.6949 128.148C44.7548 159.337 70.0459 163.419 90.771 154.99C108.893 147.62 112.5 117.978 90.771 111.531C35.2011 95.0457 3.59722 93.6373 3.59721 46.8545ZM939.535 73.4414C953.339 44.5541 1051.25 34.3286 1051.25 88.2686L1053.04 149.878C1054.72 157.967 1058.37 165.203 1058.37 170.841C1058.37 188.224 1035.15 194.871 1021.85 167.262C1000.63 181.833 985.55 190.27 956.918 183.623C921.896 171.352 919.084 125.849 956.918 113.066L1019.55 98.75C1019.55 62.4493 972.769 70.6295 964.333 88.2686C954.062 109.742 926.915 99.8493 939.535 73.4414ZM252.846 119.201C232.395 126.615 213.733 128.532 207.086 131.472C193.793 137.351 194.56 154.991 207.086 161.638C223.703 169.051 250.801 157.548 252.846 134.54V119.201ZM468.645 119.201C448.194 126.615 429.532 128.532 422.885 131.472C409.592 137.351 410.359 154.991 422.885 161.638C439.502 169.051 466.6 157.548 468.645 134.54V119.201ZM1019.55 118.945C999.099 126.359 980.438 128.277 973.792 131.217C960.498 137.097 961.265 154.735 973.792 161.382C990.408 168.795 1017.51 157.292 1019.55 134.284V118.945ZM676.775 73.7578C658.369 73.7578 649.166 85.2621 646.098 107.247H706.173C704.128 87.0516 695.692 73.7578 676.775 73.7578ZM783.594 2.06641C792.771 2.06644 800.211 9.50571 800.211 18.6826C800.211 27.8597 792.771 35.2988 783.594 35.2988H783.055C773.878 35.2988 766.439 27.8597 766.439 18.6826C766.439 9.50569 773.878 2.06641 783.055 2.06641H783.594Z" fill="#7002FF"/></svg>';
 const TOKEN_KEY = 'slt_zayavki_token';
 const WD = ['вс','пн','вт','ср','чт','пт','сб'];
@@ -282,7 +285,8 @@ const S = {
   sup: null,           // редактор поставки
   acc: null,           // приёмка «с правками»
   stk: { mode: 'items', q: '', open: '', vals: {}, units: {}, place: '', note: '', cnt: '', cntLoaded: '', cntVals: {}, cntNote: '' },
-  cnt: { q: '', vals: {}, units: {}, comment: '', loaded: '' },   // пересчёт ресторана   // остатки
+  cnt: { q: '', vals: {}, units: {}, comment: '', loaded: '' },
+  pur: { source: '', to: '', date: '', comment: '', all: false, vals: {}, packs: {} },   // закупка на склад   // пересчёт ресторана   // остатки
   pendingData: null,   // свежие данные из ответа на сохранение
   cart: null,          // заказ ресторана
   plc: { sel: null, f: null },   // места
@@ -442,6 +446,7 @@ function tabs(){
     T.push({ id: 'inbox', title: 'Поставки', cnt: nNew });
     T.push({ id: 'summary', title: 'Свод на дату' });
     T.push({ id: 'messages', title: 'Сообщения' });
+    T.push({ id: 'purchase', title: 'Закупка на склад' });
     T.push({ id: 'req', title: S.form && S.form.id ? 'Заявка ' + S.form.id : 'Заявка вручную' });
     T.push({ id: 'transfer', title: 'Перемещение' });
     T.push({ id: 'invoices', title: 'Накладные' });
@@ -769,22 +774,87 @@ function countReview(){
   if (K.cntLoaded !== c.id) { K.cntLoaded = c.id; K.cntVals = {}; K.cntNote = ''; c.lines.forEach(l => { K.cntVals[l.itemId] = String(l.qty).replace('.', ','); }); }
   let html = '<div class="card-list" style="flex-direction:row;flex-wrap:wrap;gap:8px;margin-bottom:12px">' + list.map(x => '<div class="card' + (x.id === c.id ? ' sel' : '') + '" style="min-width:200px" onclick="App.cntPick(\'' + x.id + '\')"><div class="top"><span class="title">' + h(x.place) + '</span><span class="small muted">' + h(ru(x.date)) + '</span></div><div class="small muted">' + h(x.id) + ' · позиций: ' + x.lines.length + '</div></div>').join('') + '</div>';
   html += '<dl class="kv"><dt>Место</dt><dd>' + h(c.place) + '</dd><dt>Посчитал</dt><dd>' + h(c.author) + ' · ' + h(ruDT(c.createdAt)) + '</dd>' + (c.comment ? '<dt>Комментарий</dt><dd>' + h(c.comment) + '</dd>' : '') + '</dl>';
-  html += '<div class="small muted" style="margin-bottom:6px">«По системе» — остаток в момент пересчёта. Поставки, принятые после, сохранятся. Цифру ресторана можно поправить.</div>';
-  html += '<div class="t-wrap"><table class="t"><thead><tr><th>Позиция</th><th class="num">По системе</th><th class="num" style="width:120px">Посчитано</th><th class="num">Разница</th></tr></thead><tbody>' +
-    c.lines.map(l => { const q = num(K.cntVals[l.itemId]), d = Math.round((q - l.was) * 1000) / 1000;
+  html += '<div class="small muted" style="margin-bottom:6px">«Было с приходом» — прошлый пересчёт плюс всё, что ресторан принял с тех пор. «Расход» = было с приходом − посчитано (минус — излишек). Цифру ресторана можно поправить. Поставки, принятые после этого пересчёта, не потеряются.</div>';
+  html += '<div class="t-wrap"><table class="t"><thead><tr><th>Позиция</th><th class="num">Было с приходом</th><th class="num" style="width:120px">Посчитано</th><th class="num">Расход</th></tr></thead><tbody>' +
+    c.lines.map(l => { const q = num(K.cntVals[l.itemId]), d = Math.round((l.was - q) * 1000) / 1000;
       return '<tr><td>' + h(l.name) + ' <span class="muted small">' + h(l.unit) + '</span></td><td class="num">' + fmtN(l.was) + '</td>' +
         '<td><input type="text" inputmode="decimal" style="text-align:right" value="' + h(K.cntVals[l.itemId]) + '" oninput="App.cntRevVal(\'' + l.itemId + '\', this.value)"></td>' +
-        '<td class="num ' + (d < 0 ? 'diff-down' : (d > 0 ? 'diff-up' : '')) + '" data-diff="' + l.itemId + '">' + (d > 0 ? '+' : '') + fmtN(d) + '</td></tr>'; }).join('') + '</tbody></table></div>';
+        '<td class="num' + (d < 0 ? ' diff-up' : '') + '" data-diff="' + l.itemId + '">' + fmtN(d) + '</td></tr>'; }).join('') + '</tbody></table></div>';
   html += '<div class="field" style="margin-top:10px"><label>Комментарий ресторану</label><input type="text" value="' + h(K.cntNote) + '" oninput="App.cntNote(this.value)"></div>' +
     '<div class="actions"><button class="btn btn-primary" onclick="App.cntReview(\'approve\')">Утвердить — записать в остатки</button><button class="btn btn-secondary" onclick="App.cntReview(\'return\')">Вернуть ресторану</button></div>';
   return html;
 }
+
+/* ---------- Закупка: Таня заранее заказывает у поставщика на склад ---------- */
+function packAmount(it, packName){ const p = it && (it.packs || []).find(x => x.name === packName); return p && p.amount ? p.amount : ((it && it.base) || 1); }
+// Сколько ресторанам нужно с этого места по ещё не принятым заявкам (в ед. учёта)
+function demandFrom(store, itemId){
+  const t0 = todayYmd(), it = itemById(itemId);
+  let q = 0;
+  S.data.lines.forEach(l => {
+    if (l.itemId !== itemId || l.from !== store) return;
+    const r = S.data.requests.find(x => x.id === l.reqId);
+    if (!r || r.place === store || r.shipDate < t0 || ['Отправлена','На проверке','Утверждена','Отгружена'].indexOf(r.status) < 0) return;
+    q += (l.approved === null ? (l.requested || 0) : l.approved) * packAmount(it, l.pack);
+  });
+  return Math.round(q * 1000) / 1000;
+}
+function purPacks(it, src){ const all = (it.packs || []).filter(p => p.active); const own = all.filter(p => p.supplier === src); return own.concat(all.filter(p => own.indexOf(p) < 0)); }
+VIEWS.purchase = function(){
+  const P = S.pur;
+  const sups = S.data.places.filter(p => p.active && p.type !== 'Ресторан');
+  const tos = S.data.places.filter(p => p.active && p.type !== 'Поставщик');
+  if (!P.to) P.to = (tos.find(p => p.type === 'Склад') || tos[0] || {}).name || '';
+  if (!P.date) P.date = addDaysYmd(todayYmd(), 1);
+  let html = '<div class="panel"><h2 class="panel-title">Закупка на склад</h2>' +
+    '<div class="small muted" style="margin-bottom:10px">Заказ у поставщика заранее, на всех. Сразу утверждается: попадает в «Сообщения» поставщику на дату прихода и в «Остатки» как «ожидается». Когда товар приедет, его принимают в «Поставках» или в списке ниже.</div>' +
+    '<div class="row"><div class="field"><label>Поставщик</label><select onchange="App.purF(\'source\', this.value)"><option value="">— выберите —</option>' +
+      sups.map(p => '<option' + (p.name === P.source ? ' selected' : '') + '>' + h(p.name) + '</option>').join('') + '</select></div>' +
+    '<div class="field"><label>Куда</label><select onchange="App.purF(\'to\', this.value)">' + tos.map(p => '<option' + (p.name === P.to ? ' selected' : '') + '>' + h(p.name) + '</option>').join('') + '</select></div>' +
+    '<div class="field"><label>Дата прихода</label><input type="date" value="' + h(P.date) + '" onchange="App.purF(\'date\', this.value)"></div>' +
+    '<div class="field"><label>Комментарий</label><input type="text" value="' + h(P.comment) + '" oninput="App.purC(this.value)"></div></div>';
+  if (P.source) {
+    const mine = i => i.from === P.source || i.source === P.source || (i.packs || []).some(p => p.supplier === P.source);
+    let items = S.data.items.filter(i => i.active && (P.all || mine(i)));
+    if (!P.all && !items.length) items = S.data.items.filter(i => i.active);
+    const cats = uniq(S.data.categories.concat(items.map(i => i.category)));
+    html += '<label class="small" style="display:inline-flex;gap:6px;align-items:center;margin:4px 0 8px"><input type="checkbox"' + (P.all ? ' checked' : '') + ' onchange="App.purAll(this.checked)"> показать все позиции, не только этого поставщика</label>';
+    cats.forEach(cat => {
+      const list = items.filter(i => i.category === cat);
+      if (!list.length) return;
+      html += '<h3 class="sec">' + h(cat) + '</h3><table class="t"><thead><tr><th>Позиция</th><th class="num">' + h(P.to) + ' сейчас</th><th class="num">Нужно ресторанам</th><th>Фасовка</th><th class="num" style="width:110px">Кол-во</th></tr></thead><tbody>' +
+        list.map(i => { const pk = purPacks(i, P.source), cur = P.packs[i.id] || (pk[0] && pk[0].name) || '', pd = pendingOf(P.to, i.id), dm = demandFrom(P.to, i.id), u = bunit(i.id);
+          return '<tr><td>' + h(i.name) + '</td><td class="num">' + fmtN(stockOf(P.to, i.id)) + ' ' + h(u) + (pd ? ' <span class="small" style="color:var(--ok)">+' + fmtN(pd) + '</span>' : '') + '</td>' +
+            '<td class="num">' + (dm ? fmtN(dm) + ' ' + h(u) : '<span class="muted">·</span>') + '</td>' +
+            '<td>' + (pk.length > 1 ? '<select onchange="App.purPack(\'' + i.id + '\', this.value)">' + pk.map(p => '<option' + (p.name === cur ? ' selected' : '') + ' value="' + h(p.name) + '">' + h(p.name) + (p.supplier && p.supplier !== P.source ? ' · ' + h(p.supplier) : '') + '</option>').join('') + '</select>' : '<span class="small muted">' + h(cur || i.unit) + '</span>') + '</td>' +
+            '<td><input type="text" inputmode="decimal" style="text-align:right" value="' + h(P.vals[i.id] || '') + '" oninput="App.purVal(\'' + i.id + '\', this.value)"></td></tr>'; }).join('') + '</tbody></table>';
+    });
+    html += '<div class="actions"><button class="btn btn-primary" onclick="App.purSave()">Запланировать закупку</button></div>';
+  }
+  html += '</div>';
+  // Запланированные приходы: заявки на свои места (не рестораны), ещё не принятые
+  const planned = S.data.requests.filter(r => (place(r.place) || {}).type !== 'Ресторан' && ['Утверждена','Отгружена'].indexOf(r.status) >= 0).sort((a,b) => a.shipDate.localeCompare(b.shipDate));
+  html += '<div class="panel"><h2 class="panel-title">Ожидаемые приходы</h2>';
+  if (!planned.length) html += '<div class="empty">Нет запланированных приходов</div>';
+  else html += '<table class="t"><thead><tr><th>Дата</th><th>Куда</th><th>Откуда</th><th>Позиции</th><th></th></tr></thead><tbody>' + planned.map(r => '<tr><td>' + h(ruDay(r.shipDate)) + '</td><td>' + h(r.place) + '</td><td>' + h(r.source) + '</td><td class="small">' +
+    linesOf(r.id).map(l => h(l.name) + ' — ' + fmtN(l.approved === null ? l.requested : l.approved) + ' ' + h(l.pack || l.unit)).join('<br>') + '</td><td style="white-space:nowrap"><button class="btn btn-secondary btn-sm" onclick="App.accept(\'' + r.id + '\')">Принять</button> <button class="btn btn-secondary btn-sm" onclick="App.purOpen(\'' + r.id + '\')">Открыть</button></td></tr>').join('') + '</tbody></table>';
+  return html + '</div>';
+};
+function addDaysYmd(ymd, k){ const p = ymd.split('-').map(Number); return new Date(Date.UTC(p[0], p[1] - 1, p[2] + k, 12)).toISOString().slice(0, 10); }
 
 /* ---------- Остатки (закупки) ---------- */
 function stockOf(placeName, itemId){ const q = S.data.stock && S.data.stock.qty[placeName]; return q ? (q[itemId] || 0) : 0; }
 function pendingOf(placeName, itemId){ const q = S.data.stock && S.data.stock.pending[placeName]; return q ? (q[itemId] || 0) : 0; }
 function bunit(itemId){ const it = itemById(itemId) || {}; return (S.data.stock && S.data.stock.units[itemId]) || it.baseUnit || it.unit || ''; }
 // Короткая строка для проверки заявки: «Контейнер 700 шт (+300) · Дана 120»
+// Места хранения позиции: склады + её «Откуда», если это своё место (например, пакеты хранит Палаццо).
+// Остатки ресторанов-получателей не показываем: там расходники копятся до пересчёта.
+function storesOf(i){
+  const st = S.data.places.filter(p => p.type === 'Склад' && p.active).map(p => p.name);
+  const f = i && place(i.from);
+  return uniq((f && f.type !== 'Поставщик' ? [i.from] : []).concat(st));
+}
+function mainStore(i){ return storesOf(i)[0] || ''; }
 function stockHint(itemId, placeNames){
   if (!S.data.stock || !itemId) return '';
   const parts = uniq(placeNames.filter(Boolean)).map(p => {
@@ -826,25 +896,26 @@ VIEWS.stock = function(){
     cats.forEach(cat => {
       const list = items.filter(i => i.category === cat);
       if (!list.length) return;
-      html += '<h3 class="sec">' + h(cat) + '</h3><table class="t"><tbody>' + list.map(i => '<tr><td>' + h(i.name) + '</td><td class="num muted" style="width:140px">сейчас ' + fmtN(stockOf(K.place, i.id)) + ' ' + h(bunit(i.id)) + '</td>' +
+      html += '<h3 class="sec">' + h(cat) + '</h3><table class="t"><tbody>' + list.map(i => '<tr><td>' + h(i.name) + '</td><td class="num muted" style="width:140px">' + ((place(K.place) || {}).type === 'Ресторан' ? '' : 'сейчас ' + fmtN(stockOf(K.place, i.id)) + ' ' + h(bunit(i.id))) + '</td>' +
         '<td style="width:130px"><input type="text" inputmode="decimal" style="text-align:right" value="' + h(K.vals[i.id] === undefined ? '' : K.vals[i.id]) + '" oninput="App.stkVal(\'' + i.id + '\', this.value)"></td>' +
         '<td style="width:170px">' + countUnitSelect(i) + '</td></tr>').join('') + '</tbody></table>';
     });
     return html + '<div class="actions"><button class="btn btn-primary" onclick="App.stkSaveCount()">Сохранить инвентаризацию</button></div></div>';
   }
   html += '<div class="field" style="max-width:360px"><label>Поиск</label><input type="text" id="stk-q" value="' + h(K.q) + '" oninput="App.stkQ(this.value)"></div>';
-  html += '<div class="small muted" style="margin-bottom:6px">Зелёным — ожидается: утверждено, но ещё не принято. Нажмите на позицию, чтобы поправить остаток по местам.</div>';
+  html += '<div class="small muted" style="margin-bottom:6px">Остаток в месте хранения (склад или «Откуда» позиции). Зелёным — ожидается приход: утверждено, но ещё не принято. Остатки ресторанов здесь не показываются — они видны в пересчётах. Нажмите на позицию, чтобы поправить.</div>';
   cats.forEach(cat => {
     const list = items.filter(i => i.category === cat);
     if (!list.length) return;
     html += '<h3 class="sec">' + h(cat) + '</h3><table class="t"><tbody>';
     list.forEach(i => {
-      const tot = places.reduce((a, p) => a + stockOf(p, i.id), 0), pend = places.reduce((a, p) => a + pendingOf(p, i.id), 0);
+      const stores = storesOf(i);
+      const tot = stores.reduce((a, p) => a + stockOf(p, i.id), 0), pend = stores.reduce((a, p) => a + pendingOf(p, i.id), 0);
       const open = K.open === i.id;
-      html += '<tr class="click' + (open ? ' sel' : '') + '" onclick="App.stkOpen(\'' + i.id + '\')"><td><b>' + h(i.name) + '</b></td><td class="num" style="width:160px"><b>' + fmtN(tot) + '</b> ' + h(bunit(i.id)) +
+      html += '<tr class="click' + (open ? ' sel' : '') + '" onclick="App.stkOpen(\'' + i.id + '\')"><td><b>' + h(i.name) + '</b> <span class="small muted">' + h(stores.join(', ')) + '</span></td><td class="num" style="width:160px"><b>' + fmtN(tot) + '</b> ' + h(bunit(i.id)) +
         (pend ? ' <span class="small" style="color:var(--ok)">+' + fmtN(pend) + '</span>' : '') + '</td></tr>';
       if (open) {
-        places.forEach(p => {
+        storesOf(i).forEach(p => {
           const q = stockOf(p, i.id), pd = pendingOf(p, i.id);
           html += '<tr><td style="padding-left:22px">' + h(p) + (pd ? ' <span class="small" style="color:var(--ok)">ожидается +' + fmtN(pd) + '</span>' : '') + '</td>' +
             '<td><input type="text" inputmode="decimal" style="text-align:right" value="' + h(K.vals[p] === undefined ? fmtN(q).replace(/\s/g, '') : K.vals[p]) + '" oninput="App.stkVal(\'' + h(p) + '\', this.value)"></td></tr>';
@@ -950,7 +1021,7 @@ function supplyView(s){
     const dis = editable.length ? '' : ' disabled';
     const srcP = place(e0.from);
     html += '<tr style="background:var(--hover)"><td><b>' + h(g.name) + '</b>' + (!g.itemId ? ' <span class="chip st-Возвращена">нет в справочнике</span>' : '') +
-      stockHint(g.itemId, [srcP && srcP.type !== 'Поставщик' ? e0.from : ''].concat(g.rows.map(x => x.r.place))) + '</td>' +
+      stockHint(g.itemId, [srcP && srcP.type !== 'Поставщик' ? e0.from : mainStore(itemById(g.itemId))]) + '</td>' +
       '<td class="num"><b>' + fmtN(totReq) + '</b></td>' +
       '<td>' + packSelect(it, e0.pack || g.unit, 'App.supItem(\'' + h(k) + '\',\'pack\',this.value)', dis) + '</td>' +
       '<td class="num"><b data-tot="' + h(k) + '">' + fmtN(totAp) + '</b></td>' +
@@ -1035,7 +1106,7 @@ function editor(r){
     html += '<tr><td>' + h(l.name) + (!l.itemId ? ' <span class="chip st-Возвращена">нет в справочнике</span>' : '') +
       (over ? ' <span class="chip late" title="Среднее по утверждённым заявкам этого ресторана за 6 недель">больше обычного: обычно ~' + fmtN(us) + '</span>' : '') +
       (l.invoice ? '<div class="small muted">' + h(l.invoice) + '</div>' : '') +
-      stockHint(l.itemId, [place(e.from) && place(e.from).type !== 'Поставщик' ? e.from : '', r.place]) + '</td>' +
+      stockHint(l.itemId, [place(e.from) && place(e.from).type !== 'Поставщик' ? e.from : mainStore(itemById(l.itemId))]) + '</td>' +
       '<td class="num">' + (l.requested === null ? '—' : fmtN(l.requested)) + '</td>' +
       '<td>' + packSelect(it, e.pack || l.unit, 'App.edPack(\'' + l.lineId + '\', this.value)', dis) + '</td>' +
       '<td><input type="text" inputmode="decimal" style="text-align:right" value="' + h(e.approved) + '"' + disQ + ' oninput="App.ed(\'' + l.lineId + '\',\'approved\',this.value)"></td>' +
@@ -1706,7 +1777,7 @@ window.App = {
   // проверка пересчёта закупками
   cntPick(id){ S.stk.cnt = id; render(); },
   cntRevVal(id, v){ S.stk.cntVals[id] = v; const c = pendingCounts().find(x => x.id === S.stk.cnt), l = c && c.lines.find(x => x.itemId === id), td = document.querySelector('[data-diff="' + id + '"]');
-    if (l && td) { const d = Math.round((num(v) - l.was) * 1000) / 1000; td.textContent = (d > 0 ? '+' : '') + fmtN(d); td.className = 'num ' + (d < 0 ? 'diff-down' : (d > 0 ? 'diff-up' : '')); } },
+    if (l && td) { const d = Math.round((l.was - num(v)) * 1000) / 1000; td.textContent = fmtN(d); td.className = 'num' + (d < 0 ? ' diff-up' : ''); } },
   cntNote(v){ S.stk.cntNote = v; },
   cntReview(decision){
     const K = S.stk, id = K.cnt;
@@ -1731,6 +1802,19 @@ window.App = {
   inbox(k, v){ S.inbox[k] = v; render(); },
   open(id){ S.inbox.sel = id; S.msg = null; S.ed = null; render(); showDetail(); },
   openSup(k){ S.inbox.sup = k; S.inbox.sel = null; S.sup = null; S.msg = null; render(); showDetail(); },
+  purF(k, v){ S.pur[k] = v; if (k === 'source') { S.pur.vals = {}; S.pur.packs = {}; } render(); },
+  purC(v){ S.pur.comment = v; },
+  purAll(v){ S.pur.all = v; render(); },
+  purPack(id, v){ S.pur.packs[id] = v; },
+  purVal(id, v){ S.pur.vals[id] = v; },
+  purOpen(id){ S.tab = 'inbox'; S.inbox.sel = id; S.ed = null; S.msg = null; render(); window.scrollTo(0, 0); },
+  purSave(){
+    const P = S.pur;
+    const lines = Object.keys(P.vals).filter(id => num(P.vals[id]) > 0).map(id => { const it = itemById(id), pk = purPacks(it, P.source); return { itemId: id, qty: num(P.vals[id]), pack: P.packs[id] || (pk[0] && pk[0].name) || '' }; });
+    if (!lines.length) { S.msg = { kind: 'warn', text: 'Впишите количество хотя бы по одной позиции' }; render(); return window.scrollTo({ top: 0, behavior: 'smooth' }); }
+    run(async () => { const r = await api('planSupply', { source: P.source, to: P.to, date: P.date, comment: P.comment, lines: lines }); P.vals = {}; P.comment = ''; await reload(); return r; },
+      r => 'Закупка ' + r.id + ' запланирована на ' + ruDay(P.date) + ' (' + lines.length + ' поз.)' + (r.invoices.length ? ', накладная ' + r.invoices.join(', ') : ', сообщение поставщику — во вкладке «Сообщения»'));
+  },
   openReq(id){ S.inbox.sel = id; S.ed = null; S.msg = null; render(); showDetail(); },
   backToSup(){ S.inbox.sel = null; S.ed = null; render(); showDetail(); },
   supLine(lineId, k, v){
