@@ -1,7 +1,14 @@
 <!--
   Salateira · Заявки на расходники (zayavki.html)
-  Версия 1.7
+  Версия 2.0
 
+  2.0 — поставщики и графики. Ресторан: вкладка «Заказ» — заказывает каждый день, каждая позиция
+        сама уходит в ближайшую поставку (видна дата и время приёма), «Как в прошлый раз»;
+        источники ресторану не видны. Закупки: заявки сгруппированы по источнику и дате,
+        фасовка в строке заявки (поставщик фасовки становится источником), «Заявка вручную»
+        (в т.ч. на склад), «Сообщения» — водителю и каждому поставщику (с адресами и телефонами),
+        раздел «Места» с графиками, в справочнике — фасовки, новая категория/поставщик на месте.
+        Нужен Code.gs ≥ 2.0.0.
   1.7 — компактная форма заявки: позиции в две колонки на широком экране, плотнее строки,
         количество рядом с названием; в накладной «Отпустил» вместо «Сдал».
   1.6 — корректировка утверждённой заявки (количество/комментарий, номера накладных
@@ -73,7 +80,10 @@
   .muted{ color:var(--muted); }
   .small{ font-size:0.8rem; }
   .split{ display:grid; grid-template-columns:minmax(320px, 420px) 1fr; gap:18px; align-items:start; }
-  @media (max-width:960px){ .split{ grid-template-columns:1fr; } }
+  .split.wide{ grid-template-columns:minmax(260px, 310px) 1fr; }
+  @media (max-width:960px){ .split, .split.wide{ grid-template-columns:1fr; } }
+  table.ed-t{ min-width:860px; }
+  table.ed-t select{ min-width:120px; }
 
   .btn{ font-family:inherit; font-size:0.86rem; font-weight:700; padding:9px 16px; border-radius:8px; border:1.5px solid transparent; cursor:pointer; white-space:nowrap; }
   .btn:disabled{ opacity:0.5; cursor:default; }
@@ -88,7 +98,7 @@
 
   .field{ display:flex; flex-direction:column; gap:4px; margin-bottom:12px; }
   .field label{ font-size:0.75rem; font-weight:700; color:var(--muted); }
-  input[type=text], input[type=password], input[type=number], input[type=date], select, textarea{
+  input[type=text], input[type=password], input[type=number], input[type=date], input[type=time], select, textarea{
     font-family:inherit; font-size:0.9rem; color:var(--ink); background:#fff; border:1.5px solid var(--line); border-radius:8px; padding:8px 10px; outline:none; width:100%;
   }
   input:focus, select:focus, textarea:focus{ border-color:var(--accent); }
@@ -212,7 +222,7 @@
 'use strict';
 
 const API = 'https://script.google.com/macros/s/AKfycbyFzdhhkVtxq8RWyaUzDBZAqe_M7sLbNgYOVMuly4HHmqLzse5b-5yhAE72PjWscjcF/exec';
-const VERSION = '1.7';
+const VERSION = '2.0';
 const LOGO = '<svg class="logo-mark" viewBox="0 0 1059 188" xmlns="http://www.w3.org/2000/svg" aria-label="Salateira"><path d="M611.586 107.247C617.466 33.8785 734.55 28.51 738.384 107.247C738.384 120.54 732.509 125.577 714.354 126.676H646.098C646.098 153.262 666.549 172.691 697.226 159.397C706.94 153.773 712.564 146.301 717.677 143.037C729.692 135.368 742.162 148.332 734.805 159.397C703.361 206.691 601.105 195.699 611.586 107.247ZM551.401 2.06641C560.578 2.06654 568.017 9.50577 568.017 18.6826V53.4678H583.643C590.138 53.4679 595.403 58.733 595.403 65.2275C595.403 71.722 590.138 76.9872 583.643 76.9873H568.017V149.798C569.105 157.145 571.859 158.706 574.615 159.854C577.938 160.877 582.796 161.464 593.277 158.064C603.758 154.666 616.028 172.892 595.322 182.351C574.615 191.809 533.713 188.997 534.735 153.463L534.804 153.449C534.791 153.181 534.785 152.91 534.785 152.639V76.9873H526.379C519.885 76.9873 514.62 71.7221 514.62 65.2275C514.62 58.733 519.885 53.4678 526.379 53.4678H534.785V18.6826C534.785 9.50569 542.224 2.06641 551.401 2.06641ZM783.589 50.1328C792.766 50.133 800.205 57.5722 800.206 66.749V170.028C800.205 179.205 792.766 186.644 783.589 186.645C774.412 186.645 766.973 179.205 766.973 170.028V66.749C766.973 57.5721 774.412 50.1328 783.589 50.1328ZM850.588 50.1328C859.765 50.1328 867.204 57.5721 867.205 66.749V68.8203C878.771 46.6922 897.178 47.8161 912.415 54.3105C937.723 64.0246 922.128 88.4264 907.045 82.9424C877.779 72.3012 869.743 84.3673 867.205 129.686V170.028C867.204 179.205 859.765 186.645 850.588 186.645C841.412 186.644 833.972 179.205 833.972 170.028V66.749C833.972 57.5722 841.412 50.133 850.588 50.1328ZM336.192 0C345.369 4.01144e-07 352.808 7.4391 352.808 16.6162V170.001C352.808 179.178 345.369 186.617 336.192 186.617C327.015 186.617 319.576 179.178 319.576 170.001V16.6162C319.576 7.4392 327.015 0.000164922 336.192 0ZM172.831 73.6973C186.635 44.8099 284.545 34.5843 284.545 88.5244L286.335 150.134C288.015 158.223 291.666 165.459 291.666 171.097C291.665 188.48 268.44 195.127 255.147 167.518C233.929 182.089 218.846 190.526 190.214 183.879C155.192 171.608 152.38 126.103 190.214 113.321L252.846 99.0059C252.846 62.705 206.065 70.8853 197.628 88.5244C187.358 109.998 160.211 100.105 172.831 73.6973ZM388.629 73.6973C402.434 44.8099 500.344 34.5843 500.344 88.5244L502.134 150.134C503.814 158.223 507.464 165.459 507.464 171.097C507.464 188.48 484.239 195.127 470.946 167.518C449.728 182.089 434.645 190.526 406.013 183.879C370.99 171.608 368.178 126.103 406.013 113.321L468.645 99.0059C468.645 62.705 421.864 70.8853 413.427 88.5244C403.157 109.998 376.01 100.105 388.629 73.6973ZM3.59721 46.8545C3.59721 -7.59644 117.868 -19.6115 134.485 38.9297C139.086 59.8927 110.551 74.4792 101.252 46.8545C92.5596 21.0354 44.7549 17.712 37.3413 46.8545C35.8076 73.186 92.3796 73.4214 112.755 83.4121C152.38 102.841 151.869 151.923 117.869 174.675C85.1468 194.615 9.98783 191.037 0.528848 140.42C-4.1049 115.623 23.0256 107.953 30.6949 128.148C44.7548 159.337 70.0459 163.419 90.771 154.99C108.893 147.62 112.5 117.978 90.771 111.531C35.2011 95.0457 3.59722 93.6373 3.59721 46.8545ZM939.535 73.4414C953.339 44.5541 1051.25 34.3286 1051.25 88.2686L1053.04 149.878C1054.72 157.967 1058.37 165.203 1058.37 170.841C1058.37 188.224 1035.15 194.871 1021.85 167.262C1000.63 181.833 985.55 190.27 956.918 183.623C921.896 171.352 919.084 125.849 956.918 113.066L1019.55 98.75C1019.55 62.4493 972.769 70.6295 964.333 88.2686C954.062 109.742 926.915 99.8493 939.535 73.4414ZM252.846 119.201C232.395 126.615 213.733 128.532 207.086 131.472C193.793 137.351 194.56 154.991 207.086 161.638C223.703 169.051 250.801 157.548 252.846 134.54V119.201ZM468.645 119.201C448.194 126.615 429.532 128.532 422.885 131.472C409.592 137.351 410.359 154.991 422.885 161.638C439.502 169.051 466.6 157.548 468.645 134.54V119.201ZM1019.55 118.945C999.099 126.359 980.438 128.277 973.792 131.217C960.498 137.097 961.265 154.735 973.792 161.382C990.408 168.795 1017.51 157.292 1019.55 134.284V118.945ZM676.775 73.7578C658.369 73.7578 649.166 85.2621 646.098 107.247H706.173C704.128 87.0516 695.692 73.7578 676.775 73.7578ZM783.594 2.06641C792.771 2.06644 800.211 9.50571 800.211 18.6826C800.211 27.8597 792.771 35.2988 783.594 35.2988H783.055C773.878 35.2988 766.439 27.8597 766.439 18.6826C766.439 9.50569 773.878 2.06641 783.055 2.06641H783.594Z" fill="#7002FF"/></svg>';
 const TOKEN_KEY = 'slt_zayavki_token';
 const WD = ['вс','пн','вт','ср','чт','пт','сб'];
@@ -228,7 +238,10 @@ const S = {
   token: store.get(TOKEN_KEY), data: null, tab: null, busy: false, msg: null,
   form: null,          // новая/редактируемая заявка
   mineSel: null,       // выбранная заявка в «Мои заявки»
-  inbox: { date: '', status: 'active', sel: null },
+  inbox: { date: '', src: '*', status: 'active', sel: null },
+  cart: null,          // заказ ресторана
+  plc: { sel: null, f: null },   // места
+  msgTab: 'driver',
   ed: null,            // редактор закупок
   sumDate: '', drvDate: '',
   tr: null,            // перемещение
@@ -297,6 +310,7 @@ async function run(fn, okText){
 async function reload(){
   const d = await api('bootstrap');
   S.data = d;
+  if (S.cart && !cartDirty()) S.cart = null;
   if (!S.tab || !tabs().some(t => t.id === S.tab)) S.tab = tabs()[0].id;
   if (!S.sumDate) S.sumDate = defaultShipDate();
   if (!S.drvDate) S.drvDate = defaultShipDate();
@@ -309,10 +323,12 @@ function cover(on){
 }
 
 function defaultShipDate(){
-  const o = (S.data && S.data.settings.shipOptions) || [];
   const t = todayYmd();
-  const f = o.find(x => x.date >= t);
-  return f ? f.date : t;
+  const ds = [];
+  (S.data.places || []).forEach(p => (p.deliveries || []).forEach(d => { if (d.date >= t) ds.push(d.date); }));
+  S.data.invoices.forEach(i => { if (i.date >= t) ds.push(i.date); });
+  ds.sort();
+  return ds[0] || t;
 }
 
 /* ============================== ВХОД ============================== */
@@ -352,8 +368,9 @@ function tabs(){
   const T = [];
   const nTasks = S.data && S.data.tasks ? S.data.tasks.filter(t => t.date >= todayYmd() && t.status !== 'Отгружена').length : 0;
   if (r === 'Ресторан') {
-    T.push({ id: 'new', title: S.form && S.form.id ? 'Заявка ' + S.form.id : 'Новая заявка' });
+    T.push({ id: 'cart', title: 'Заказ' });
     T.push({ id: 'mine', title: 'Мои заявки' });
+    if (S.form && S.form.id) T.push({ id: 'req', title: 'Заявка ' + S.form.id });
     T.push({ id: 'tasks', title: 'Собрать', cnt: nTasks });
     T.push({ id: 'transfer', title: 'Перемещение' });
     T.push({ id: 'invoices', title: 'Накладные' });
@@ -361,11 +378,12 @@ function tabs(){
     const nNew = S.data ? S.data.requests.filter(q => q.status === 'Отправлена').length : 0;
     T.push({ id: 'inbox', title: 'Заявки', cnt: nNew });
     T.push({ id: 'summary', title: 'Свод на дату' });
-    T.push({ id: 'driver', title: 'Водителю' });
-    T.push({ id: 'new', title: S.form && S.form.id ? 'Заявка ' + S.form.id : 'Заявка за ресторан' });
+    T.push({ id: 'messages', title: 'Сообщения' });
+    T.push({ id: 'req', title: S.form && S.form.id ? 'Заявка ' + S.form.id : 'Заявка вручную' });
     T.push({ id: 'transfer', title: 'Перемещение' });
     T.push({ id: 'invoices', title: 'Накладные' });
     T.push({ id: 'catalog', title: 'Справочник' });
+    T.push({ id: 'places', title: 'Места' });
     T.push({ id: 'movements', title: 'Отчёт по перемещениям' });
     if (nTasks) T.push({ id: 'tasks', title: 'Собрать', cnt: nTasks });
   } else if (r === 'Водитель') {
@@ -408,104 +426,126 @@ function render(){
 
 const VIEWS = {}, AFTER = {};
 
-/* ---------- Новая / редактируемая заявка ---------- */
-function newForm(){
-  const opts = S.data.settings.shipOptions;
-  const me = isRest() ? S.data.user.place : '';
-  const taken = d => me && S.data.requests.some(r => r.place === me && r.shipDate === d);
-  const first = opts.find(o => !o.late && !taken(o.date)) || opts.find(o => !o.late) || opts[0];
-  return { id: '', updatedAt: '', place: isRest() ? S.data.user.place : '', shipDate: first ? first.date : '', comment: '', qty: {}, free: [], notes: {}, q: '' };
+/* ---------- Заказ ресторана (каждый день) ---------- */
+// Каждая позиция уходит в ближайшую поставку своего источника; ресторан видит только дату и время приёма.
+function cartInit(){
+  const T = S.data.targets || {};
+  const c = { qty: {}, dirty: {}, free: ((T.__free && T.__free.lines) || []).map(x => ({ name: x.name, unit: x.unit, qty: x.qty })), freeDirty: false, comment: '', q: '' };
+  S.data.items.forEach(i => { const t = T[i.id]; if (t && t.qty) c.qty[i.id] = t.qty; });
+  S.cart = c;
 }
-function formFromRequest(r){
-  const f = { id: r.id, updatedAt: r.updatedAt, place: r.place, shipDate: r.shipDate, comment: r.comment, qty: {}, free: [], notes: {}, q: '' };
-  linesOf(r.id).forEach(l => {
-    if (l.itemId) { if (l.requested) f.qty[l.itemId] = l.requested; if (l.comment) f.notes[l.itemId] = l.comment; }
-    else if (l.requested) f.free.push({ name: l.name, unit: l.unit, qty: l.requested, note: l.comment });
-  });
-  return f;
+function cartDirty(){ return !!S.cart && (Object.keys(S.cart.dirty).length > 0 || S.cart.freeDirty || !!str(S.cart.comment)); }
+// Последнее количество по каждой позиции (для «было» и «Как в прошлый раз»), не считая открытых заявок.
+function lastQty(){
+  const out = {};
+  const reqs = S.data.requests.filter(r => !(r.status === 'Отправлена' && r.shipDate >= todayYmd())).sort((a, b) => b.shipDate.localeCompare(a.shipDate));
+  reqs.forEach(r => linesOf(r.id).forEach(l => {
+    if (!l.itemId || l.itemId in out) return;
+    const q = l.approved !== null ? l.approved : l.requested;
+    if (q) out[l.itemId] = { qty: q, date: r.shipDate };
+  }));
+  return out;
 }
-function prevOrder(placeName, exceptId){
-  const reqs = S.data.requests.filter(r => r.place === placeName && r.id !== exceptId && r.status !== 'Черновик')
-    .sort((a,b) => b.shipDate.localeCompare(a.shipDate));
-  const r = reqs[0];
-  if (!r) return null;
-  const m = {};
-  linesOf(r.id).forEach(l => { if (l.itemId) m[l.itemId] = l.approved !== null ? l.approved : l.requested; });
-  return { date: r.shipDate, map: m };
-}
+function dlText(t){ return t && t.deadline ? ruDay(t.deadline.slice(0, 10)) + ' ' + t.deadline.slice(11) : ''; }
 
-VIEWS.new = function(){
-  if (!S.form) S.form = newForm();
-  const f = S.form, st = S.data.settings;
-  const opts = st.shipOptions.slice();
-  if (f.shipDate && !opts.some(o => o.date === f.shipDate)) opts.unshift({ date: f.shipDate, deadline: '', late: false });
-  const sel = opts.find(o => o.date === f.shipDate);
-  const prev = f.place ? prevOrder(f.place, f.id) : null;
+VIEWS.cart = function(){
+  if (!S.cart) cartInit();
+  const C = S.cart, T = S.data.targets || {};
+  const prev = lastQty();
   const cats = S.data.categories.slice();
   const items = S.data.items.filter(i => i.active);
   items.forEach(i => { if (cats.indexOf(i.category) < 0) cats.push(i.category || 'Прочее'); });
-  const q = f.q.toLowerCase();
-  const cur = f.id ? S.data.requests.find(r => r.id === f.id) : null;
+  const q = C.q.toLowerCase();
 
-  let html = '<div class="panel">';
-  html += '<h2 class="panel-title">' + (f.id ? 'Заявка ' + h(f.id) + ' ' + chip(cur ? cur.status : '') : (isRest() ? 'Новая заявка' : 'Заявка за ресторан')) + '</h2>';
-  if (cur && cur.purchaseComment) html += '<div class="msg warn">Комментарий закупок: ' + h(cur.purchaseComment) + '</div>';
-  html += '<div class="row">';
-  if (!isRest()) {
-    html += '<div class="field"><label>Ресторан</label><select onchange="App.f(\'place\', this.value)">' +
-      '<option value="">— выберите —</option>' + restaurants().map(n => '<option' + (n === f.place ? ' selected' : '') + '>' + h(n) + '</option>').join('') + '</select></div>';
-  }
-  html += '<div class="field"><label>Дата отгрузки</label><select onchange="App.f(\'shipDate\', this.value)">' +
-    opts.map(o => {
-      const closed = o.late && !st.lateAllowed && !isSuper();
-      return '<option value="' + o.date + '"' + (o.date === f.shipDate ? ' selected' : '') + (closed ? ' disabled' : '') + '>' +
-        h(ruDay(o.date)) + (o.deadline ? ' — приём до ' + h(ruDay(o.deadline.slice(0,10)) + ' ' + o.deadline.slice(11)) : '') + (o.late ? ' (не рекомендуется)' : '') + '</option>';
-    }).join('') + '</select></div>';
-  html += '<div class="field"><label>Поиск позиции</label><input type="text" id="f-q" value="' + h(f.q) + '" placeholder="Например, крышка" oninput="App.fq(this.value)"></div>';
-  html += '</div>';
-  const existing = f.place && S.data.requests.find(r => r.place === f.place && r.shipDate === f.shipDate && r.id !== f.id);
-  if (existing) html += '<div class="msg warn">На ' + h(ruDay(f.shipDate)) + ' у ресторана уже есть заявка ' + h(existing.id) + ' (' + h(existing.status.toLowerCase()) + '). Вторую создать нельзя. ' +
-    (['Черновик','Отправлена','Возвращена'].indexOf(existing.status) >= 0 ? 'Отредактируйте или удалите созданную. <button class="btn btn-primary btn-sm" onclick="App.editReq(\'' + existing.id + '\')">Открыть ' + h(existing.id) + '</button>' : 'Отредактируйте или удалите созданную или создайте заявку на другую дату.') + '</div>';
-  if (sel && sel.late) html += '<div class="msg warn">Дедлайн на эту дату прошёл (' + h(ruDT(sel.deadline)) + '). Заявка уйдёт с пометкой «поздняя».</div>';
-  if (prev) html += '<div class="row" style="align-items:center;margin-bottom:4px"><div class="small muted" style="flex:1 1 240px">Справа серым — сколько пришло в прошлый раз (' + h(ruDay(prev.date)) + ').</div>' +
-    '<button class="btn btn-secondary btn-sm" onclick="App.repeatLast()">Как в прошлый раз</button></div>';
+  // Ближайшие закрытия приёма
+  const slots = {};
+  items.forEach(i => { const t = T[i.id]; if (!t || t.none) return; const k = t.deadline + '|' + t.date; (slots[k] = slots[k] || {})[i.category] = 1; });
+  const slotHtml = Object.keys(slots).sort().slice(0, 4).map(k => { const p = k.split('|'); return '<div class="small"><b>до ' + h(dlText({ deadline: p[0] })) + '</b> → поставка ' + h(ruDay(p[1])) + ' <span class="muted">· ' + h(Object.keys(slots[k]).join(', ')) + '</span></div>'; }).join('');
+
+  let html = '<div class="panel"><h2 class="panel-title">Заказ</h2>' +
+    '<div class="small muted" style="margin-bottom:8px">Добавляйте позиции в любой день. Каждая попадёт в ближайшую поставку — дата видна справа от названия.</div>' +
+    (slotHtml ? '<div class="msg info" style="margin-top:0">' + slotHtml + '</div>' : '') +
+    '<div class="row" style="align-items:flex-end"><div class="field" style="flex:1 1 240px;margin-bottom:6px"><label>Поиск позиции</label><input type="text" id="c-q" value="' + h(C.q) + '" placeholder="Например, крышка" oninput="App.cq(this.value)"></div>' +
+    (Object.keys(prev).length ? '<div class="field" style="flex:0 0 auto;margin-bottom:6px"><button class="btn btn-secondary btn-sm" onclick="App.cartRepeat()">Как в прошлый раз</button></div>' : '') + '</div>';
 
   cats.forEach(cat => {
     const list = items.filter(i => (i.category || 'Прочее') === cat && (!q || i.name.toLowerCase().indexOf(q) >= 0));
     if (!list.length) return;
     html += '<h3 class="sec">' + h(cat) + '</h3><div class="items-grid">';
     list.forEach(i => {
-      const v = f.qty[i.id] || '';
-      const p = prev && prev.map[i.id] !== undefined ? prev.map[i.id] : null;
+      const t = T[i.id] || { none: true };
+      const v = C.qty[i.id] || '';
+      const p = prev[i.id];
+      const dis = t.none || t.locked ? ' disabled' : '';
+      const when = t.none ? '<span style="color:var(--red)">нет поставки</span>' : (t.locked ? '<span style="color:var(--amber)">на ' + h(ruDay(t.date)) + ' уже у закупок</span>' : '→ ' + h(ruDay(t.date)));
       html += '<div class="item-row' + (v ? ' has-qty' : '') + '" data-id="' + h(i.id) + '">' +
-        '<div><div class="nm">' + h(i.name) + '</div><div class="meta">' + h(i.unit) + (i.mult > 1 ? ' · кратно ' + fmtN(i.mult) : '') + '</div>' +
-        (f.notes[i.id] ? '<div class="note">Закупки: ' + h(f.notes[i.id]) + '</div>' : '') + '</div>' +
-        '<div class="prev">' + (p !== null ? 'было ' + fmtN(p) : '') + '</div>' +
-        '<div class="qty"><button type="button" onclick="App.step(\'' + h(i.id) + '\',-1)">−</button>' +
-        '<input type="text" inputmode="decimal" value="' + h(v) + '" placeholder="0" onchange="App.setQty(\'' + h(i.id) + '\', this.value)">' +
-        '<button type="button" onclick="App.step(\'' + h(i.id) + '\',1)">+</button></div></div>';
+        '<div><div class="nm">' + h(i.name) + '</div><div class="meta">' + h(i.unitLabel || i.unit) + (i.mult > 1 ? ' · кратно ' + fmtN(i.mult) : '') + ' · ' + when + '</div></div>' +
+        '<div class="prev">' + (p ? 'было ' + fmtN(p.qty) : '') + '</div>' +
+        '<div class="qty"><button type="button"' + dis + ' onclick="App.cstep(\'' + h(i.id) + '\',-1)">−</button>' +
+        '<input type="text" inputmode="decimal" value="' + h(v) + '" placeholder="0"' + dis + ' onchange="App.cset(\'' + h(i.id) + '\', this.value)">' +
+        '<button type="button"' + dis + ' onclick="App.cstep(\'' + h(i.id) + '\',1)">+</button></div></div>';
     });
     html += '</div>';
   });
 
-  html += '<h3 class="sec">Нет в списке</h3>';
-  html += '<div class="small muted" style="margin-bottom:8px">Впишите название. Поставка не гарантируется</div>';
-  f.free.forEach((x, k) => {
-    html += '<div class="free-row"><input type="text" placeholder="Название" value="' + h(x.name) + '" onchange="App.free(' + k + ',\'name\',this.value)">' +
-      '<input type="text" placeholder="ед." value="' + h(x.unit) + '" onchange="App.free(' + k + ',\'unit\',this.value)">' +
-      '<input type="text" inputmode="decimal" placeholder="кол-во" value="' + h(x.qty) + '" onchange="App.free(' + k + ',\'qty\',this.value)">' +
-      '<button class="x-btn" type="button" title="Убрать" onclick="App.freeDel(' + k + ')">×</button></div>' +
-      (x.note ? '<div class="note small" style="color:var(--red);margin:-2px 0 8px">Закупки: ' + h(x.note) + '</div>' : '');
+  const ft = T.__free;
+  html += '<h3 class="sec">Нет в списке</h3><div class="small muted" style="margin-bottom:8px">Впишите название. Поставка не гарантируется' + (ft ? ' · → ' + h(ruDay(ft.date)) : '') + '</div>';
+  const fdis = !ft || ft.locked ? ' disabled' : '';
+  C.free.forEach((x, k) => {
+    html += '<div class="free-row"><input type="text" placeholder="Название" value="' + h(x.name) + '"' + fdis + ' onchange="App.cfree(' + k + ',\'name\',this.value)">' +
+      '<input type="text" placeholder="ед." value="' + h(x.unit) + '"' + fdis + ' onchange="App.cfree(' + k + ',\'unit\',this.value)">' +
+      '<input type="text" inputmode="decimal" placeholder="кол-во" value="' + h(x.qty) + '"' + fdis + ' onchange="App.cfree(' + k + ',\'qty\',this.value)">' +
+      '<button class="x-btn" type="button"' + fdis + ' onclick="App.cfreeDel(' + k + ')">×</button></div>';
   });
-  html += '<button class="btn btn-secondary btn-sm" type="button" onclick="App.freeAdd()">+ Добавить позицию</button>';
+  if (!fdis) html += '<button class="btn btn-secondary btn-sm" type="button" onclick="App.cfreeAdd()">+ Добавить позицию</button>';
+  html += '<h3 class="sec">Комментарий</h3><textarea placeholder="Если нужно что-то пояснить закупкам" oninput="App.ccomment(this.value)">' + h(C.comment) + '</textarea>';
+  const n = Object.keys(C.dirty).length + (C.freeDirty ? 1 : 0);
+  html += '<div class="actions"><button class="btn btn-primary" onclick="App.cartSave()"' + (n || str(C.comment) ? '' : ' disabled') + '>Сохранить заказ' + (n ? ' (' + n + ')' : '') + '</button>' +
+    (n ? '<button class="btn btn-secondary" onclick="App.cartReset()">Отменить изменения</button>' : '') + '</div></div>';
+  return html;
+};
 
-  html += '<h3 class="sec">Комментарий</h3><textarea placeholder="Если нужно что-то пояснить закупкам" onchange="App.f(\'comment\', this.value)">' + h(f.comment) + '</textarea>';
+/* ---------- Заявка целиком: правка рестораном, «Заявка вручную» у закупок ---------- */
+function formFromRequest(r){
+  return { id: r.id, updatedAt: r.updatedAt, place: r.place, source: r.source || '', shipDate: r.shipDate, comment: r.comment,
+    lines: linesOf(r.id).filter(l => l.requested).map(l => ({ itemId: l.itemId, name: l.name, unit: l.pack || l.unit, qty: l.requested, note: l.comment })) };
+}
+function newManualForm(){ return { id: '', updatedAt: '', place: '', source: '', shipDate: '', comment: '', lines: [] }; }
 
-  const total = Object.keys(f.qty).filter(k => num(f.qty[k]) > 0).length + f.free.filter(x => str(x.name) && num(x.qty) > 0).length;
-  html += '<div class="actions"><button class="btn btn-primary" onclick="App.saveReq(true)"' + (total ? '' : ' disabled') + '>Отправить заявку (' + total + ')</button>' +
-    '<button class="btn btn-secondary" onclick="App.saveReq(false)">Сохранить черновик</button>' +
-    (f.id ? '<button class="btn btn-secondary" onclick="App.cancelEdit()">Отменить правку</button>' : '') + '</div>';
-  html += '</div>';
+VIEWS.req = function(){
+  if (!S.form) S.form = newManualForm();
+  const f = S.form, sup = isSuper();
+  const cur = f.id ? S.data.requests.find(r => r.id === f.id) : null;
+  let html = '<div class="panel"><h2 class="panel-title">' + (f.id ? 'Заявка ' + h(f.id) + ' ' + chip(cur ? cur.status : '') : 'Заявка вручную') + '</h2>';
+  if (cur && cur.purchaseComment) html += '<div class="msg warn">Комментарий закупок: ' + h(cur.purchaseComment) + '</div>';
+  if (sup) {
+    const recips = S.data.places.filter(p => p.type !== 'Поставщик' && p.active).map(p => p.name);
+    const srcs = S.data.places.filter(p => p.name !== f.place && p.active).map(p => p.name);
+    const sp = place(f.source);
+    html += '<div class="row">' +
+      '<div class="field"><label>Получатель</label><select onchange="App.rf(\'place\', this.value)"><option value="">— выберите —</option>' + recips.map(n => '<option' + (n === f.place ? ' selected' : '') + '>' + h(n) + '</option>').join('') + '</select></div>' +
+      '<div class="field"><label>Источник (кто везёт)</label><select onchange="App.rf(\'source\', this.value)"><option value="">— без источника —</option>' + srcs.map(n => '<option' + (n === f.source ? ' selected' : '') + '>' + h(n) + '</option>').join('') + '</select></div>' +
+      '<div class="field"><label>Дата поставки</label><input type="date" value="' + h(f.shipDate) + '" onchange="App.rf(\'shipDate\', this.value)"></div></div>';
+    if (sp && sp.deliveries && sp.deliveries.length) html += '<div class="small muted" style="margin:-4px 0 8px">Ближайшие поставки: ' + sp.deliveries.filter(d => d.date >= todayYmd()).slice(0, 5).map(d => '<a href="#" onclick="App.rf(\'shipDate\',\'' + d.date + '\');return false">' + h(ruDay(d.date)) + '</a>' + (d.closed ? ' (приём закрыт)' : '')).join(' · ') + '</div>';
+    else if (f.source) html += '<div class="small" style="color:var(--amber);margin:-4px 0 8px">У «' + h(f.source) + '» не задан график — укажите дату вручную или заполните график в «Местах».</div>';
+  } else {
+    html += '<dl class="kv"><dt>Поставка</dt><dd>' + h(ruDay(f.shipDate)) + '</dd></dl>';
+  }
+  html += '<div class="t-wrap"><table class="t"><thead><tr><th>Позиция</th><th class="num" style="width:120px">Количество</th><th style="width:40px"></th></tr></thead><tbody>';
+  if (!f.lines.length) html += '<tr><td colspan="3" class="muted small">Пока пусто' + (sup ? ' — добавьте позиции поиском ниже' : '') + '</td></tr>';
+  f.lines.forEach((l, k) => {
+    const it = l.itemId ? itemById(l.itemId) : null;
+    html += '<tr><td>' + h(l.name) + ' <span class="muted small">' + h(l.unit) + (it && it.mult > 1 ? ' · кратно ' + fmtN(it.mult) : '') + '</span>' +
+      (l.note ? '<div class="small" style="color:var(--red)">Закупки: ' + h(l.note) + '</div>' : '') + '</td>' +
+      '<td><input type="text" inputmode="decimal" style="text-align:right" value="' + h(l.qty) + '" onchange="App.rfl(' + k + ', this.value)"></td>' +
+      '<td><button class="x-btn" style="height:32px;width:32px" onclick="App.rflDel(' + k + ')">×</button></td></tr>';
+  });
+  html += '</tbody></table></div>';
+  if (sup) html += '<div class="field" style="margin-top:10px"><label>Добавить позицию</label>' + combo('rf', '') + '</div>';
+  else html += '<div class="small muted" style="margin-top:6px">Новые позиции добавляйте во вкладке «Заказ».</div>';
+  html += '<div class="field" style="margin-top:10px"><label>Комментарий</label><textarea onchange="App.rf(\'comment\', this.value, true)">' + h(f.comment) + '</textarea></div>';
+  html += '<div class="actions"><button class="btn btn-primary" onclick="App.saveReq()">' + (sup ? 'Сохранить заявку' : 'Сохранить и отправить') + '</button>' +
+    '<button class="btn btn-secondary" onclick="App.cancelEdit()">Отмена</button></div></div>';
   return html;
 };
 
@@ -525,15 +565,15 @@ function combo(key, value){
 }
 
 /* ---------- Мои заявки (ресторан) ---------- */
+function reqCats(r){ return uniq(linesOf(r.id).map(l => { const it = itemById(l.itemId); return it ? it.category : 'Нет в списке'; })).join(', '); }
 VIEWS.mine = function(){
   const reqs = S.data.requests.slice().sort((a,b) => b.shipDate.localeCompare(a.shipDate) || b.id.localeCompare(a.id));
   if (!reqs.length) return '<div class="panel"><div class="empty">Заявок пока нет</div></div>';
   if (!S.mineSel || !reqs.some(r => r.id === S.mineSel)) S.mineSel = reqs[0].id;
   let html = '<div class="split"><div class="panel"><h2 class="panel-title">Мои заявки</h2><div class="card-list">';
   reqs.forEach(r => {
-    const n = linesOf(r.id).length;
     html += '<div class="card' + (r.id === S.mineSel ? ' sel' : '') + '" onclick="App.mineSel(\'' + r.id + '\')"><div class="top"><span class="title">' + h(ruDay(r.shipDate)) + '</span>' + chip(r.status) + '</div>' +
-      '<div class="small muted">' + h(r.id) + ' · позиций: ' + n + (r.late ? ' · <span style="color:var(--red)">поздняя</span>' : '') + '</div></div>';
+      '<div class="small muted">' + h(reqCats(r)) + ' · позиций: ' + linesOf(r.id).length + '</div></div>';
   });
   html += '</div></div><div>' + requestDetail(S.data.requests.find(r => r.id === S.mineSel), 'rest') + '</div></div>';
   return html;
@@ -543,8 +583,9 @@ function requestDetail(r, mode){
   if (!r) return '';
   const ls = linesOf(r.id);
   const showApproved = ls.some(l => l.approved !== null) || ['Утверждена','Отгружена'].indexOf(r.status) >= 0;
-  let html = '<div class="panel"><h2 class="panel-title">Заявка ' + h(r.id) + ' ' + chip(r.status) + (r.late ? ' <span class="chip late">поздняя</span>' : '') + '</h2>';
-  html += '<dl class="kv"><dt>Ресторан</dt><dd>' + h(r.place) + '</dd><dt>Отгрузка</dt><dd>' + h(ruDay(r.shipDate)) + '</dd>' +
+  let html = '<div class="panel"><h2 class="panel-title">Заявка ' + h(r.id) + ' ' + chip(r.status) + '</h2>';
+  html += '<dl class="kv"><dt>Получатель</dt><dd>' + h(r.place) + '</dd><dt>Поставка</dt><dd>' + h(ruDay(r.shipDate)) + '</dd>' +
+    (r.source ? '<dt>Источник</dt><dd>' + h(r.source) + '</dd>' : '') +
     '<dt>Создана</dt><dd>' + h(ruDT(r.createdAt)) + ' · ' + h(r.author) + '</dd>' +
     (r.approvedAt ? '<dt>Утверждена</dt><dd>' + h(ruDT(r.approvedAt)) + ' · ' + h(r.approvedBy) + '</dd>' : '') + '</dl>';
   if (r.comment) html += '<div class="msg info">Комментарий ресторана: ' + h(r.comment) + '</div>';
@@ -557,7 +598,7 @@ function requestDetail(r, mode){
       const cls = l.requested === null ? 'diff-up' : (a < l.requested ? 'diff-down' : (a > l.requested ? 'diff-up' : ''));
       ap = '<td class="num ' + cls + '">' + (a === null ? '' : fmtN(a)) + '</td>';
     }
-    html += '<tr><td>' + h(l.name) + ' <span class="muted small">' + h(l.unit) + '</span>' + (l.requested === null ? ' <span class="chip st-Утверждена">добавлено</span>' : '') + '</td>' +
+    html += '<tr><td>' + h(l.name) + ' <span class="muted small">' + h(l.pack || l.unit) + '</span>' + (l.requested === null ? ' <span class="chip st-Утверждена">добавлено</span>' : '') + '</td>' +
       '<td class="num">' + (l.requested === null ? '—' : fmtN(l.requested)) + '</td>' + ap + '<td class="small">' + h(l.comment) + '</td></tr>';
   });
   html += '</tbody></table></div>';
@@ -565,9 +606,8 @@ function requestDetail(r, mode){
   if (invs.length) html += '<div class="actions">' + invs.map(i => '<button class="btn btn-secondary btn-sm" onclick="App.print([\'' + h(i.no) + '\'])">Печать ' + h(i.no) + '</button>').join('') + '</div>';
   if (mode === 'rest') {
     const a = [];
-    if (['Черновик','Отправлена','Возвращена'].indexOf(r.status) >= 0) a.push('<button class="btn btn-primary" onclick="App.editReq(\'' + r.id + '\')">' + (r.status === 'Возвращена' ? 'Исправить и отправить' : 'Изменить') + '</button>');
-    if (r.status === 'Отправлена') a.push('<button class="btn btn-secondary" onclick="App.withdraw(\'' + r.id + '\')">Отозвать в черновик</button>');
-    if (['Черновик','Отправлена'].indexOf(r.status) >= 0) a.push('<button class="btn btn-danger" onclick="App.delReq(\'' + r.id + '\')">Удалить</button>');
+    if (['Отправлена','Возвращена'].indexOf(r.status) >= 0) a.push('<button class="btn btn-primary" onclick="App.editReq(\'' + r.id + '\')">' + (r.status === 'Возвращена' ? 'Исправить и отправить' : 'Изменить') + '</button>');
+    if (r.status === 'Отправлена') a.push('<button class="btn btn-danger" onclick="App.delReq(\'' + r.id + '\')">Удалить</button>');
     if (r.status === 'На проверке') html += '<div class="msg info">Закупки уже проверяют заявку, изменить её нельзя. Если срочно, напишите Тане.</div>';
     if (a.length) html += '<div class="actions">' + a.join('') + '</div>';
   }
@@ -577,28 +617,40 @@ function requestDetail(r, mode){
 
 /* ---------- Входящие заявки (закупки / руководитель) ---------- */
 const ACTIVE_ST = ['Отправлена','На проверке','Возвращена'];
+function srcLabel(src){ return src || 'без источника'; }
 VIEWS.inbox = function(){
   const I = S.inbox;
   let reqs = S.data.requests.slice();
   const dates = uniq(reqs.map(r => r.shipDate)).sort().reverse();
+  const srcs = uniq(reqs.map(r => r.source || '')).sort();
   if (I.date) reqs = reqs.filter(r => r.shipDate === I.date);
+  if (I.src !== undefined && I.src !== '*') reqs = reqs.filter(r => (r.source || '') === I.src);
   if (I.status === 'active') reqs = reqs.filter(r => ACTIVE_ST.indexOf(r.status) >= 0);
   else if (I.status) reqs = reqs.filter(r => r.status === I.status);
-  reqs.sort((a,b) => a.shipDate.localeCompare(b.shipDate) || a.place.localeCompare(b.place));
-  let html = '<div class="split"><div class="panel"><h2 class="panel-title">Заявки</h2><div class="row">' +
-    '<div class="field"><label>Отгрузка</label><select onchange="App.inbox(\'date\', this.value)"><option value="">все даты</option>' +
+  reqs.sort((a,b) => a.shipDate.localeCompare(b.shipDate) || (a.source || '').localeCompare(b.source || '') || a.place.localeCompare(b.place));
+  let html = '<div class="split wide"><div class="panel"><h2 class="panel-title">Заявки</h2><div class="row">' +
+    '<div class="field"><label>Поставка</label><select onchange="App.inbox(\'date\', this.value)"><option value="">все даты</option>' +
     dates.map(d => '<option value="' + d + '"' + (d === I.date ? ' selected' : '') + '>' + h(ruDay(d)) + '</option>').join('') + '</select></div>' +
+    '<div class="field"><label>Источник</label><select onchange="App.inbox(\'src\', this.value)"><option value="*">все</option>' +
+    srcs.map(s => '<option value="' + h(s) + '"' + (I.src === s ? ' selected' : '') + '>' + h(srcLabel(s)) + '</option>').join('') + '</select></div>' +
     '<div class="field"><label>Статус</label><select onchange="App.inbox(\'status\', this.value)">' +
-    [['active','В работе'],['','Все'],['Отправлена','Отправлена'],['На проверке','На проверке'],['Возвращена','Возвращена'],['Утверждена','Утверждена'],['Отгружена','Отгружена'],['Черновик','Черновик']]
+    [['active','В работе'],['','Все'],['Отправлена','Отправлена'],['На проверке','На проверке'],['Возвращена','Возвращена'],['Утверждена','Утверждена'],['Отгружена','Отгружена']]
       .map(o => '<option value="' + o[0] + '"' + (o[0] === I.status ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select></div></div>';
-  const notSent = restaurants().filter(p => I.date && !S.data.requests.some(r => r.place === p && r.shipDate === I.date && r.status !== 'Черновик'));
-  if (notSent.length) html += '<div class="msg warn">Ещё не прислали на ' + h(ruDay(I.date)) + ': ' + h(notSent.join(', ')) + '</div>';
   if (!reqs.length) html += '<div class="empty">Нет заявок</div>';
   else {
     html += '<div class="card-list">';
+    let lastGroup = '';
     reqs.forEach(r => {
-      html += '<div class="card' + (r.id === I.sel ? ' sel' : '') + '" onclick="App.open(\'' + r.id + '\')"><div class="top"><span class="title">' + h(r.place) + ' · ' + h(ruDay(r.shipDate)) + '</span>' + chip(r.status) + '</div>' +
-        '<div class="small muted">' + h(r.id) + ' · позиций: ' + linesOf(r.id).length + ' · ' + h(ruDT(r.updatedAt)) + (r.late ? ' · <span style="color:var(--red)">поздняя</span>' : '') + '</div></div>';
+      const g = r.shipDate + '|' + (r.source || '');
+      if (g !== lastGroup) {
+        lastGroup = g;
+        const sp = place(r.source);
+        const d = sp && sp.deliveries ? sp.deliveries.find(x => x.date === r.shipDate) : null;
+        html += '<div class="small" style="margin:8px 0 0;font-weight:700;color:var(--accent-dark)">' + h(srcLabel(r.source)) + ' · ' + h(ruDay(r.shipDate)) +
+          (d ? ' <span class="muted" style="font-weight:500">· приём ' + (d.closed ? 'закрыт' : 'до ' + h(dlText(d))) + '</span>' : '') + '</div>';
+      }
+      html += '<div class="card' + (r.id === I.sel ? ' sel' : '') + '" onclick="App.open(\'' + r.id + '\')"><div class="top"><span class="title">' + h(r.place) + '</span>' + chip(r.status) + '</div>' +
+        '<div class="small muted">' + h(r.id) + ' · позиций: ' + linesOf(r.id).length + ' · ' + h(ruDT(r.updatedAt)) + '</div></div>';
     });
     html += '</div>';
   }
@@ -610,21 +662,31 @@ VIEWS.inbox = function(){
   return html;
 };
 
-// Сколько ресторан обычно берёт позицию: среднее по утверждённым заявкам за 6 недель до этой отгрузки (нужно ≥ 2).
-function usualQty(place, itemId, exceptId, shipDate){
+// Сколько ресторан обычно берёт позицию: среднее по утверждённым заявкам за 6 недель до этой поставки (нужно ≥ 2).
+function usualQty(placeName, itemId, exceptId, shipDate){
   const from = addDays(shipDate, -42);
   const vals = [];
   S.data.requests.forEach(r => {
-    if (r.place !== place || r.id === exceptId || r.shipDate < from || r.shipDate >= shipDate || ['Утверждена','Отгружена'].indexOf(r.status) < 0) return;
+    if (r.place !== placeName || r.id === exceptId || r.shipDate < from || r.shipDate >= shipDate || ['Утверждена','Отгружена'].indexOf(r.status) < 0) return;
     S.data.lines.forEach(l => { if (l.reqId === r.id && l.itemId === itemId && l.approved) vals.push(l.approved); });
   });
   return vals.length >= 2 ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
 }
 
 function startEditor(r){
-  const E = { id: r.id, updatedAt: r.updatedAt, purchaseComment: r.purchaseComment, lines: {}, added: [], addItem: '', addQty: '' };
-  linesOf(r.id).forEach(l => { E.lines[l.lineId] = { approved: l.approved === null ? '' : String(l.approved), from: l.from || '', comment: l.comment || '' }; });
+  const E = { id: r.id, updatedAt: r.updatedAt, purchaseComment: r.purchaseComment, lines: {}, added: [] };
+  linesOf(r.id).forEach(l => { E.lines[l.lineId] = { approved: l.approved === null ? '' : String(l.approved), from: l.from || '', comment: l.comment || '', pack: l.pack || '' }; });
   S.ed = E;
+}
+function packSelect(it, val, onchange, dis){
+  const packs = it && it.packs ? it.packs.filter(p => p.active || p.name === val) : [];
+  if (packs.length < 2) return '<span class="small muted">' + h(val || (it ? it.unit : '') || '—') + '</span>';
+  return '<select' + dis + ' onchange="' + onchange + '">' + packs.map(p => '<option' + (p.name === val ? ' selected' : '') + '>' + h(p.name) + '</option>').join('') + '</select>';
+}
+function srcOptions(exclude, val){
+  const ps = S.data.places.filter(p => p.name !== exclude && (p.active || p.name === val));
+  const grp = (t, label) => { const l = ps.filter(p => t.indexOf(p.type) >= 0); return l.length ? '<optgroup label="' + label + '">' + l.map(p => '<option' + (p.name === val ? ' selected' : '') + '>' + h(p.name) + '</option>').join('') + '</optgroup>' : ''; };
+  return '<option value="">—</option>' + grp(['Склад','Офис','Ресторан'], 'Свои') + grp(['Поставщик'], 'Поставщики');
 }
 
 function editor(r){
@@ -632,39 +694,43 @@ function editor(r){
   const E = S.ed;
   const editable = ['Отправлена','На проверке','Возвращена'].indexOf(r.status) >= 0;
   const approved = ['Утверждена','Отгружена'].indexOf(r.status) >= 0;
-  const srcs = S.data.places.filter(p => p.name !== r.place).map(p => p.name);
-  let html = '<div class="panel"><h2 class="panel-title">' + h(r.place) + ' · ' + h(ruDay(r.shipDate)) + ' ' + chip(r.status) + (r.late ? ' <span class="chip late">поздняя</span>' : '') + '</h2>';
-  html += '<dl class="kv"><dt>Заявка</dt><dd>' + h(r.id) + '</dd><dt>Создана</dt><dd>' + h(ruDT(r.createdAt)) + ' · ' + h(r.author) + '</dd>' +
+  const sp = place(r.source);
+  const d = sp && sp.deliveries ? sp.deliveries.find(x => x.date === r.shipDate) : null;
+  let html = '<div class="panel"><h2 class="panel-title">' + h(r.place) + ' · ' + h(ruDay(r.shipDate)) + ' ' + chip(r.status) + '</h2>';
+  html += '<dl class="kv"><dt>Заявка</dt><dd>' + h(r.id) + '</dd><dt>Источник</dt><dd>' + h(srcLabel(r.source)) + (d ? ' <span class="muted small">· приём ' + (d.closed ? 'закрыт' : 'до ' + h(dlText(d))) + '</span>' : '') + '</dd>' +
+    '<dt>Создана</dt><dd>' + h(ruDT(r.createdAt)) + ' · ' + h(r.author) + '</dd>' +
     (r.approvedAt ? '<dt>Утверждена</dt><dd>' + h(ruDT(r.approvedAt)) + ' · ' + h(r.approvedBy) + '</dd>' : '') + '</dl>';
   if (r.comment) html += '<div class="msg info">Комментарий ресторана: ' + h(r.comment) + '</div>';
   if (r.status === 'Отправлена') html += '<div class="msg info" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap"><span>Пока заявка «Отправлена», ресторан может её менять. Нажмите «Взять в работу» или просто сохраните правки.</span>' +
     '<button class="btn btn-primary btn-sm" onclick="App.take()">Взять в работу</button></div>';
-  if (r.status === 'Черновик') html += '<div class="msg warn">Это черновик, ресторан ещё не отправил заявку.</div>';
 
-  html += '<div class="t-wrap"><table class="t"><thead><tr><th>Позиция</th><th class="num">Запрошено</th><th class="num" style="width:110px">Утвердить</th><th style="width:140px">Откуда</th><th>Комментарий ресторану</th></tr></thead><tbody>';
+  html += '<div class="t-wrap"><table class="t ed-t"><thead><tr><th>Позиция</th><th class="num">Запрошено</th><th style="width:130px">Фасовка</th><th class="num" style="width:96px">Утвердить</th><th style="width:150px">Откуда</th><th>Комментарий ресторану</th></tr></thead><tbody>';
   linesOf(r.id).forEach(l => {
     const e = E.lines[l.lineId];
+    const it = l.itemId ? itemById(l.itemId) : null;
     const dis = editable ? '' : ' disabled';
     const disQ = editable || approved ? '' : ' disabled';
     const us = l.itemId && l.requested ? usualQty(r.place, l.itemId, r.id, r.shipDate) : null;
-    const over = us !== null && l.requested >= us * (S.data.settings.overuse || 1.5) && l.requested - us >= ((itemById(l.itemId) || {}).mult || 1);
-    html += '<tr><td>' + h(l.name) + ' <span class="muted small">' + h(l.unit) + '</span>' + (!l.itemId ? ' <span class="chip st-Возвращена">нет в справочнике</span>' : '') +
+    const over = us !== null && l.requested >= us * (S.data.settings.overuse || 1.5) && l.requested - us >= ((it || {}).mult || 1);
+    html += '<tr><td>' + h(l.name) + (!l.itemId ? ' <span class="chip st-Возвращена">нет в справочнике</span>' : '') +
       (over ? ' <span class="chip late" title="Среднее по утверждённым заявкам этого ресторана за 6 недель">больше обычного: обычно ~' + fmtN(us) + '</span>' : '') +
       (l.invoice ? '<div class="small muted">' + h(l.invoice) + '</div>' : '') + '</td>' +
       '<td class="num">' + (l.requested === null ? '—' : fmtN(l.requested)) + '</td>' +
+      '<td>' + packSelect(it, e.pack || l.unit, 'App.edPack(\'' + l.lineId + '\', this.value)', dis) + '</td>' +
       '<td><input type="text" inputmode="decimal" style="text-align:right" value="' + h(e.approved) + '" placeholder="' + (l.requested === null ? '' : fmtN(l.requested)) + '"' + disQ + ' oninput="App.ed(\'' + l.lineId + '\',\'approved\',this.value)"></td>' +
-      '<td><select' + dis + ' onchange="App.ed(\'' + l.lineId + '\',\'from\',this.value)"><option value="">—</option>' + srcs.map(s => '<option' + (s === e.from ? ' selected' : '') + '>' + h(s) + '</option>').join('') + '</select></td>' +
+      '<td><select' + dis + ' onchange="App.ed(\'' + l.lineId + '\',\'from\',this.value)">' + srcOptions(r.place, e.from) + '</select></td>' +
       '<td><input type="text" value="' + h(e.comment) + '" placeholder="например: нет, будет через неделю"' + disQ + ' oninput="App.ed(\'' + l.lineId + '\',\'comment\',this.value)"></td></tr>';
   });
   E.added.forEach((a, k) => {
     const it = itemById(a.itemId);
     html += '<tr><td>' + h(it ? it.name : a.itemId) + ' <span class="chip st-Утверждена">добавляю</span></td><td class="num">—</td>' +
+      '<td>' + packSelect(it, a.pack || (it ? it.unit : ''), 'App.edAddPack(' + k + ', this.value)', '') + '</td>' +
       '<td><input type="text" inputmode="decimal" style="text-align:right" value="' + h(a.approved) + '" oninput="App.edAdd(' + k + ',\'approved\',this.value)"></td>' +
-      '<td><select onchange="App.edAdd(' + k + ',\'from\',this.value)"><option value="">—</option>' + srcs.map(s => '<option' + (s === a.from ? ' selected' : '') + '>' + h(s) + '</option>').join('') + '</select></td>' +
+      '<td><select onchange="App.edAdd(' + k + ',\'from\',this.value)">' + srcOptions(r.place, a.from) + '</select></td>' +
       '<td><button class="btn btn-danger btn-sm" onclick="App.edAddDel(' + k + ')">Убрать</button></td></tr>';
   });
   html += '</tbody></table></div>';
-  html += '<div class="small muted" style="margin-top:6px">Пустое «Утвердить» = как запрошено. 0 = не отгружаем (напишите ресторану почему).</div>';
+  html += '<div class="small muted" style="margin-top:6px">Пустое «Утвердить» = как запрошено. 0 = не отгружаем (напишите ресторану почему). Количество — в выбранной фасовке.</div>';
 
   if (editable) {
     html += '<div class="field" style="margin-top:12px"><label>Добавить позицию</label>' + combo('ed', '') + '</div>';
@@ -679,33 +745,39 @@ function editor(r){
   }
   if (approved) {
     const invs = S.data.invoices.filter(i => i.basis === r.id);
-    html += '<div class="small muted" style="margin-top:6px">Не хватило на складе? Поправьте количество и нажмите «Сохранить корректировку»: номера накладных сохранятся, ресторан получит уведомление. Сменить «откуда» — через «Вернуть в работу».</div>';
+    html += '<div class="small muted" style="margin-top:6px">Не хватило? Поправьте количество и нажмите «Сохранить корректировку»: номера накладных сохранятся, ресторан получит уведомление. Сменить «откуда» или фасовку — через «Вернуть в работу».</div>';
     html += '<div class="actions"><button class="btn btn-primary" onclick="App.adjust()">Сохранить корректировку</button>' +
       (invs.length ? '<button class="btn btn-secondary" onclick="App.print(' + h(JSON.stringify(invs.map(i => i.no))) + ')">Печать накладных (' + invs.length + ')</button>' : '') +
       '<button class="btn btn-secondary" onclick="App.reopen()">Вернуть в работу</button></div>';
-    html += '<div class="small muted" style="margin-top:6px">«Вернуть в работу» удалит накладные по этой заявке, чтобы их можно было пересоздать.</div>';
   }
   html += '</div>';
   return html;
 }
 
 /* ---------- Свод по позициям на дату ---------- */
+function knownDates(){
+  const ds = [];
+  (S.data.places || []).forEach(p => (p.deliveries || []).forEach(d => ds.push(d.date)));
+  S.data.requests.forEach(r => ds.push(r.shipDate));
+  S.data.invoices.forEach(i => ds.push(i.date));
+  return uniq(ds).sort().reverse();
+}
 VIEWS.summary = function(){
   const date = S.sumDate;
-  const dates = uniq(S.data.settings.shipOptions.map(o => o.date).concat(S.data.requests.map(r => r.shipDate))).sort().reverse();
+  const dates = knownDates();
   const reqs = S.data.requests.filter(r => r.shipDate === date && r.status !== 'Черновик');
   const rests = uniq(reqs.map(r => r.place)).sort();
   const rows = {};
   reqs.forEach(r => linesOf(r.id).forEach(l => {
     const q = l.approved !== null ? l.approved : (l.requested || 0);
     if (!q) return;
-    const key = (l.itemId || '') + '|' + l.name;
+    const key = (l.itemId || '') + '|' + l.name + '|' + (l.pack || l.unit);
     const it = l.itemId ? itemById(l.itemId) : null;
-    const row = rows[key] = rows[key] || { name: l.name, unit: l.unit, from: l.from || (it && it.from) || '—', order: it ? it.order : 1e9, by: {} };
+    const row = rows[key] = rows[key] || { name: l.name, unit: l.pack || l.unit, from: l.from || r.source || '—', order: it ? it.order : 1e9, by: {} };
     row.by[r.place] = (row.by[r.place] || 0) + q;
   }));
   const groups = by(Object.values(rows), r => r.from);
-  let html = '<div class="panel"><h2 class="panel-title">Свод на дату</h2><div class="row"><div class="field" style="max-width:260px"><label>Отгрузка</label><select onchange="App.sumDate(this.value)">' +
+  let html = '<div class="panel"><h2 class="panel-title">Свод на дату</h2><div class="row"><div class="field" style="max-width:260px"><label>Поставка</label><select onchange="App.sumDate(this.value)">' +
     dates.map(d => '<option value="' + d + '"' + (d === date ? ' selected' : '') + '>' + h(ruDay(d)) + '</option>').join('') + '</select></div></div>';
   html += '<div class="small muted">Утверждённое количество. Черновики не учитываются. Заявок: ' + reqs.length + ' (' +
     h(Object.entries(by(reqs, r => r.status)).map(e => e[0].toLowerCase() + ' ' + e[1].length).join(', ') || '—') + ')</div>';
@@ -722,7 +794,7 @@ VIEWS.summary = function(){
   return html + '</div>';
 };
 
-/* ---------- Водителю ---------- */
+/* ---------- Сообщения: водителю и поставщикам ---------- */
 function driverText(date){
   const invs = S.data.invoices.filter(i => i.date === date);
   if (!invs.length) return '';
@@ -738,27 +810,74 @@ function driverText(date){
   });
   return lines.join('\n');
 }
+function supplierLines(date, sup){
+  // Утверждённые строки с этим источником на дату, сгруппированные по получателю.
+  const out = {};
+  S.data.requests.filter(r => r.shipDate === date && ['Утверждена','Отгружена'].indexOf(r.status) >= 0).forEach(r => {
+    linesOf(r.id).forEach(l => { if (l.from === sup && l.approved) (out[r.place] = out[r.place] || []).push(l); });
+  });
+  return out;
+}
+function supplierText(date, sup){
+  const g = supplierLines(date, sup);
+  const places = Object.keys(g).sort();
+  if (!places.length) return '';
+  const org = S.data.settings.org || 'ООО «ДаСпадобы»';
+  const lines = ['Заказ ' + org + ' (Salateira) на ' + ruDay(date) + ' (' + ru(date) + ')'];
+  places.forEach(pn => {
+    const p = place(pn) || {};
+    lines.push('');
+    lines.push(pn);
+    if (p.address || p.phone) lines.push([p.address, p.phone ? 'тел. ' + p.phone : ''].filter(Boolean).join(', '));
+    g[pn].forEach(l => lines.push('• ' + l.name + (l.pack ? ', ' + l.pack : '') + ' — ' + fmtN(l.approved) + (l.pack ? '' : ' ' + l.unit)));
+  });
+  return lines.join('\n');
+}
+VIEWS.messages = function(){
+  const date = S.drvDate;
+  const dates = knownDates();
+  const sups = (S.data.places || []).filter(p => p.type === 'Поставщик').map(p => p.name)
+    .filter(sp => S.data.requests.some(r => r.shipDate === date && (r.source === sp || linesOf(r.id).some(l => l.from === sp))));
+  if (!S.msgTab || (S.msgTab !== 'driver' && sups.indexOf(S.msgTab) < 0)) S.msgTab = 'driver';
+  let html = '<div class="panel"><h2 class="panel-title">Сообщения</h2><div class="row"><div class="field" style="max-width:260px"><label>Поставка</label><select onchange="App.drvDate(this.value)">' +
+    dates.map(d => '<option value="' + d + '"' + (d === date ? ' selected' : '') + '>' + h(ruDay(d)) + '</option>').join('') + '</select></div></div>';
+  html += '<div class="tabs" style="margin-bottom:12px">' + [['driver', 'Водителю']].concat(sups.map(s => [s, s])).map(t =>
+    '<button class="tab-btn' + (S.msgTab === t[0] ? ' active' : '') + '" style="padding:6px 12px;font-size:0.8rem" onclick="App.msgTab(\'' + h(t[0]) + '\')">' + h(t[1]) + '</button>').join('') + '</div>';
+  let txt;
+  if (S.msgTab === 'driver') {
+    const pend = S.data.requests.filter(r => r.shipDate === date && ACTIVE_ST.indexOf(r.status) >= 0 && !(place(r.source) && place(r.source).type === 'Поставщик'));
+    if (pend.length) html += '<div class="msg warn">Ещё не утверждены: ' + h(pend.map(r => r.place + ' ← ' + srcLabel(r.source) + ' (' + r.status.toLowerCase() + ')').join(', ')) + '. В сообщение попадают только утверждённые заявки и перемещения.</div>';
+    txt = driverText(date);
+  } else {
+    const pend = S.data.requests.filter(r => r.shipDate === date && r.source === S.msgTab && ACTIVE_ST.indexOf(r.status) >= 0);
+    if (pend.length) html += '<div class="msg warn">Ещё не утверждены: ' + h(pend.map(r => r.place + ' (' + r.status.toLowerCase() + ')').join(', ')) + '. В сообщение попадают только утверждённые.</div>';
+    const sp = place(S.msgTab);
+    if (sp && sp.contact) html += '<div class="small muted" style="margin-bottom:6px">Контакт поставщика: ' + h(sp.contact) + '</div>';
+    const missing = Object.keys(supplierLines(date, S.msgTab)).filter(pn => { const p = place(pn); return !p || !p.address || !p.phone; });
+    if (missing.length) html += '<div class="msg warn">Нет адреса или телефона: ' + h(missing.join(', ')) + ' — заполните в «Местах».</div>';
+    txt = supplierText(date, S.msgTab);
+  }
+  if (!txt) return html + '<div class="empty">На эту дату утверждённых позиций нет</div></div>';
+  html += '<pre class="msgtext" id="drv-text">' + h(txt) + '</pre><div class="actions">' +
+    '<button class="btn btn-primary" onclick="App.copyMsg()">Скопировать для Viber</button>';
+  if (S.msgTab === 'driver') {
+    html += '<button class="btn btn-secondary" onclick="App.print(' + h(JSON.stringify(S.data.invoices.filter(i => i.date === date).map(i => i.no))) + ')">Печать всех накладных на дату</button>';
+    const ok = S.data.requests.filter(r => r.shipDate === date && r.status === 'Утверждена').length;
+    if (ok) html += '<button class="btn btn-secondary" onclick="App.shipped()">Отметить: всё отгружено (' + ok + ')</button>';
+  }
+  return html + '</div></div>';
+};
+// Маршрут водителя (его роль не видит заявок поставщиков)
 VIEWS.driver = function(){
   const date = S.drvDate;
-  const dates = uniq(S.data.settings.shipOptions.map(o => o.date).concat(S.data.invoices.map(i => i.date))).sort().reverse();
+  const dates = uniq(S.data.invoices.map(i => i.date).concat([todayYmd()])).sort().reverse();
   const txt = driverText(date);
-  let html = '<div class="panel"><h2 class="panel-title">' + (role() === 'Водитель' ? 'Маршрут' : 'Сообщение водителю') + '</h2><div class="row"><div class="field" style="max-width:260px"><label>Дата</label><select onchange="App.drvDate(this.value)">' +
+  let html = '<div class="panel"><h2 class="panel-title">Маршрут</h2><div class="row"><div class="field" style="max-width:260px"><label>Дата</label><select onchange="App.drvDate(this.value)">' +
     dates.map(d => '<option value="' + d + '"' + (d === date ? ' selected' : '') + '>' + h(ruDay(d)) + '</option>').join('') + '</select></div></div>';
-  if (isSuper()) {
-    const pend = S.data.requests.filter(r => r.shipDate === date && ACTIVE_ST.indexOf(r.status) >= 0);
-    if (pend.length) html += '<div class="msg warn">Ещё не утверждены: ' + h(pend.map(r => r.place + ' (' + r.status.toLowerCase() + ')').join(', ')) + '. В сообщение попадают только утверждённые заявки и перемещения.</div>';
-  }
-  if (!txt) html += '<div class="empty">На эту дату накладных нет</div>';
-  else {
-    html += '<pre class="msgtext" id="drv-text">' + h(txt) + '</pre><div class="actions">' +
-      '<button class="btn btn-primary" onclick="App.copyDrv()">Скопировать для Viber</button>' +
-      '<button class="btn btn-secondary" onclick="App.print(' + h(JSON.stringify(S.data.invoices.filter(i => i.date === date).map(i => i.no))) + ')">Печать всех накладных на дату</button>';
-    // Водитель не видит статусы заявок, поэтому для него кнопка есть всегда, когда есть плановые накладные.
-    const ok = isSuper() ? S.data.requests.filter(r => r.shipDate === date && r.status === 'Утверждена').length
-                         : uniq(S.data.invoices.filter(i => i.date === date && i.type === 'Плановая').map(i => i.basis)).length;
-    if ((isSuper() || role() === 'Водитель') && ok) html += '<button class="btn btn-secondary" onclick="App.shipped()">Отметить: всё отгружено' + (isSuper() ? ' (' + ok + ')' : '') + '</button>';
-    html += '</div>';
-  }
+  if (!txt) return html + '<div class="empty">На эту дату накладных нет</div></div>';
+  html += '<pre class="msgtext" id="drv-text">' + h(txt) + '</pre><div class="actions">' +
+    '<button class="btn btn-secondary" onclick="App.print(' + h(JSON.stringify(S.data.invoices.filter(i => i.date === date).map(i => i.no))) + ')">Печать всех накладных на дату</button>' +
+    '<button class="btn btn-secondary" onclick="App.shipped()">Отметить: всё отгружено</button></div>';
   return html + '</div>';
 };
 
@@ -883,15 +1002,16 @@ VIEWS.movements = function(){
 
 /* ---------- Справочник позиций (закупки) ---------- */
 function catForm(it){
-  if (!it) return { id: '', name: '', category: S.data.categories[0] || '', unit: 'шт', mult: 1, from: '', responsible: '', order: '', active: true, comment: '' };
-  return { id: it.id, name: it.name, category: it.category, unit: it.unit, mult: it.mult, from: it.from || '', responsible: it.responsible || '', order: it.order, active: it.active, comment: it.comment || '' };
+  if (!it) return { id: '', name: '', category: S.data.categories[0] || '', newCategory: '', unit: 'шт', mult: 1, from: '', newSupplier: '', responsible: '', order: '', active: true, comment: '', baseUnit: 'шт', base: 1, packs: [] };
+  return { id: it.id, name: it.name, category: it.category, newCategory: '', unit: it.unit, mult: it.mult, from: it.from || '', newSupplier: '', responsible: it.responsible || '', order: it.order, active: it.active, comment: it.comment || '',
+           baseUnit: it.baseUnit || it.unit, base: it.base || 1, packs: (it.packs || []).map(p => Object.assign({}, p)) };
 }
 VIEWS.catalog = function(){
   const C = S.cat;
   const q = C.q.toLowerCase();
   const items = S.data.items.filter(i => !q || i.name.toLowerCase().indexOf(q) >= 0 || i.id.toLowerCase().indexOf(q) >= 0);
   const cats = S.data.categories.slice();
-  items.forEach(i => { if (cats.indexOf(i.category) < 0) cats.push(i.category); });
+  S.data.items.forEach(i => { if (cats.indexOf(i.category) < 0) cats.push(i.category); });
   let html = '<div class="split"><div class="panel"><h2 class="panel-title">Справочник позиций</h2>' +
     '<div class="row"><div class="field" style="flex:1 1 160px"><label>Поиск</label><input type="text" id="cat-q" value="' + h(C.q) + '" placeholder="название или ID" oninput="App.catQ(this.value)"></div>' +
     '<div class="field" style="flex:0 0 auto"><label>&nbsp;</label><button class="btn btn-primary" onclick="App.catNew()">+ Новая позиция</button></div></div>';
@@ -901,30 +1021,101 @@ VIEWS.catalog = function(){
     if (!list.length) return;
     html += '<h3 class="sec">' + h(cat) + '</h3><table class="t"><tbody>' + list.map(i =>
       '<tr class="click' + (C.sel === i.id ? ' sel' : '') + '" onclick="App.catSel(\'' + h(i.id) + '\')"><td>' + h(i.name) + (i.active ? '' : ' <span class="chip st-Черновик">скрыта</span>') +
-      '<div class="small muted">' + h(i.unit) + (i.mult > 1 ? ' · кратно ' + fmtN(i.mult) : '') + ' · ' + h(i.from || '—') + '</div></td><td class="num small muted">' + h(i.id) + '</td></tr>').join('') + '</tbody></table>';
+      '<div class="small muted">' + h(i.unitLabel || i.unit) + (i.mult > 1 ? ' · кратно ' + fmtN(i.mult) : '') + ' · ' + h(i.source || i.from || '—') + ((i.packs || []).length > 1 ? ' · фасовок: ' + i.packs.length : '') + '</div></td><td class="num small muted">' + h(i.id) + '</td></tr>').join('') + '</tbody></table>';
   });
   html += '</div><div>';
   if (!C.f) html += '<div class="panel"><div class="empty">Выберите позицию слева или нажмите «+ Новая позиция»</div></div>';
   else {
     const f = C.f, places = S.data.places;
-    const units = uniq(['шт','уп','рулон','пачка','кг','л'].concat(S.data.items.map(i => i.unit)).filter(Boolean));
+    const units = uniq(['шт','уп','рулон','пачка','банка','кг','г','л','мл'].concat(S.data.items.map(i => i.unit)).filter(Boolean));
     const fromPlace = places.find(p => p.name === f.from);
+    const supOpts = '<option value="">—</option>' + places.filter(p => p.type === 'Поставщик').map(p => '<option>' + h(p.name) + '</option>').join('');
     html += '<div class="panel"><h2 class="panel-title">' + (f.id ? h(f.name) + ' <span class="muted small">' + h(f.id) + '</span>' : 'Новая позиция') + '</h2>' +
-      '<div class="field"><label>Наименование</label><input type="text" value="' + h(f.name) + '" placeholder="Например, Крышка для соусника" oninput="App.catF(\'name\', this.value)"></div>' +
-      '<div class="row"><div class="field"><label>Категория</label><select onchange="App.catF(\'category\', this.value)">' + cats.map(x => '<option' + (x === f.category ? ' selected' : '') + '>' + h(x) + '</option>').join('') + '</select></div>' +
-      '<div class="field"><label>Ед. изм.</label><input type="text" list="cat-units" value="' + h(f.unit) + '" oninput="App.catF(\'unit\', this.value)"><datalist id="cat-units">' + units.map(u => '<option value="' + h(u) + '">').join('') + '</datalist></div>' +
+      '<div class="field"><label>Наименование</label><input type="text" value="' + h(f.name) + '" placeholder="Например, Ананасы консервированные" oninput="App.catF(\'name\', this.value)"></div>' +
+      '<div class="row"><div class="field"><label>Категория</label><select onchange="App.catF(\'category\', this.value, true)">' + cats.map(x => '<option' + (x === f.category ? ' selected' : '') + '>' + h(x) + '</option>').join('') +
+        '<option value="__new"' + (f.category === '__new' ? ' selected' : '') + '>+ Новая категория…</option></select>' +
+        (f.category === '__new' ? '<input type="text" style="margin-top:6px" placeholder="Название категории" value="' + h(f.newCategory) + '" oninput="App.catF(\'newCategory\', this.value)">' : '') + '</div>' +
+      '<div class="field"><label>Ед. изм. для ресторана</label><input type="text" list="cat-units" value="' + h(f.unit) + '" oninput="App.catF(\'unit\', this.value)"><datalist id="cat-units">' + units.map(u => '<option value="' + h(u) + '">').join('') + '</datalist></div>' +
       '<div class="field"><label>Кратность</label><input type="text" inputmode="decimal" value="' + h(f.mult) + '" oninput="App.catF(\'mult\', this.value)"></div></div>' +
-      '<div class="row"><div class="field"><label>Откуда едет</label><select onchange="App.catF(\'from\', this.value, true)"><option value="">— выберите —</option>' + places.map(p => '<option' + (p.name === f.from ? ' selected' : '') + '>' + h(p.name) + '</option>').join('') + '</select></div>' +
+      '<div class="row"><div class="field"><label>Откуда едет (по умолчанию)</label><select onchange="App.catF(\'from\', this.value, true)">' + srcOptions('', f.from) +
+        '<option value="__new"' + (f.from === '__new' ? ' selected' : '') + '>+ Новый поставщик…</option></select>' +
+        (f.from === '__new' ? '<input type="text" style="margin-top:6px" placeholder="Название поставщика" value="' + h(f.newSupplier) + '" oninput="App.catF(\'newSupplier\', this.value)">' : '') + '</div>' +
       '<div class="field"><label>Кто собирает</label><select onchange="App.catF(\'responsible\', this.value)"><option value="">' + (fromPlace && fromPlace.responsible ? 'по месту: ' + h(fromPlace.responsible) : 'по месту') + '</option>' +
         (S.data.users || []).map(u => '<option value="' + h(u.login) + '"' + (u.login === f.responsible ? ' selected' : '') + '>' + h(u.login + ' · ' + u.name) + '</option>').join('') + '</select></div>' +
       '<div class="field"><label>Порядок</label><input type="text" inputmode="numeric" value="' + h(f.order) + '" placeholder="в конец категории" oninput="App.catF(\'order\', this.value)"></div></div>' +
-      '<label class="chk"><input type="checkbox"' + (f.active ? ' checked' : '') + ' onchange="App.catF(\'active\', this.checked)"> Показывать ресторанам</label>' +
+      '<div class="row"><div class="field"><label>Единица учёта остатков</label><input type="text" list="cat-units" value="' + h(f.baseUnit) + '" placeholder="г, шт, л…" oninput="App.catF(\'baseUnit\', this.value)"></div>' +
+      '<div class="field"><label>Сколько в 1 «' + h(f.unit || 'ед.') + '» (если нет фасовок)</label><input type="text" inputmode="decimal" value="' + h(f.base) + '" oninput="App.catF(\'base\', this.value)"></div></div>';
+    // Фасовки
+    html += '<h3 class="sec">Фасовки</h3><div class="small muted" style="margin-bottom:6px">Если товар приходит в разной упаковке. Ресторан видит фасовку по умолчанию, закупки выбирают нужную в заявке. Поставщик фасовки становится источником, когда её выбирают.</div>';
+    if (f.packs.length) {
+      html += '<div class="t-wrap"><table class="t"><thead><tr><th>Фасовка</th><th class="num" style="width:110px">В ' + h(f.baseUnit || 'ед.') + '</th><th style="width:160px">Поставщик</th><th style="width:70px">Осн.</th><th style="width:60px">Вкл.</th><th style="width:40px"></th></tr></thead><tbody>';
+      f.packs.forEach((p, k) => {
+        html += '<tr><td><input type="text" value="' + h(p.name) + '" placeholder="банка 360 г" oninput="App.packF(' + k + ',\'name\',this.value)"></td>' +
+          '<td><input type="text" inputmode="decimal" style="text-align:right" value="' + h(p.amount || '') + '" placeholder="360" oninput="App.packF(' + k + ',\'amount\',this.value)"></td>' +
+          '<td><select onchange="App.packF(' + k + ',\'supplier\',this.value)">' + supOpts.replace('<option>' + h(p.supplier) + '</option>', '<option selected>' + h(p.supplier) + '</option>') + '</select></td>' +
+          '<td style="text-align:center"><input type="radio" name="pdef"' + (p.isDefault ? ' checked' : '') + ' onchange="App.packDef(' + k + ')"></td>' +
+          '<td style="text-align:center"><input type="checkbox"' + (p.active !== false ? ' checked' : '') + ' onchange="App.packF(' + k + ',\'active\',this.checked)"></td>' +
+          '<td><button class="x-btn" style="height:32px;width:32px" onclick="App.packDel(' + k + ')">×</button></td></tr>';
+      });
+      html += '</tbody></table></div>';
+    }
+    html += '<button class="btn btn-secondary btn-sm" style="margin-top:6px" onclick="App.packAdd()">+ Фасовка</button>';
+    html += '<label class="chk" style="margin-top:14px"><input type="checkbox"' + (f.active ? ' checked' : '') + ' onchange="App.catF(\'active\', this.checked)"> Показывать ресторанам</label>' +
       '<div class="field"><label>Комментарий (только для закупок)</label><input type="text" value="' + h(f.comment) + '" oninput="App.catF(\'comment\', this.value)"></div>' +
       '<div class="small muted">Рестораны увидят изменения после «Обновить». Убрать позицию — снимите «Показывать ресторанам»: старые заявки и накладные на неё ссылаются, поэтому удалять её не нужно.</div>' +
       '<div class="actions"><button class="btn btn-primary" onclick="App.catSave()">' + (f.id ? 'Сохранить' : 'Добавить в справочник') + '</button>' +
       '<button class="btn btn-secondary" onclick="App.catCancel()">Отмена</button></div></div>';
   }
   return html + '</div></div>';
+};
+
+/* ---------- Места: рестораны, склад, офис, поставщики ---------- */
+const PLACE_TYPES = ['Ресторан','Склад','Офис','Поставщик'];
+function schedText(p){
+  if (!p.days) return '';
+  return p.days + ' · приём ' + (num(p.lead) === 0 ? 'в день поставки' : 'за ' + num(p.lead) + ' дн.') + ' до ' + (p.time || '16:00');
+}
+function placeForm(p){
+  if (!p) return { isNew: true, name: '', type: 'Поставщик', code: '', invoiceName: '', responsible: '', address: '', phone: '', days: '', lead: '1', time: '16:00', contact: '', active: true };
+  return Object.assign({ isNew: false }, p, { lead: p.lead === '' ? '1' : p.lead, time: p.time || '16:00' });
+}
+VIEWS.places = function(){
+  const P = S.plc;
+  let html = '<div class="split"><div class="panel"><h2 class="panel-title">Места</h2>' +
+    '<div class="actions" style="margin:0 0 6px"><button class="btn btn-primary" onclick="App.plNew()">+ Новое место / поставщик</button></div>';
+  PLACE_TYPES.forEach(t => {
+    const list = S.data.places.filter(p => p.type === t);
+    if (!list.length) return;
+    html += '<h3 class="sec">' + (t === 'Поставщик' ? 'Поставщики' : t === 'Ресторан' ? 'Рестораны' : t) + '</h3><table class="t"><tbody>' + list.map(p => {
+      const sc = schedText(p);
+      return '<tr class="click' + (P.sel === p.name ? ' sel' : '') + '" onclick="App.plSel(\'' + h(p.name) + '\')"><td>' + h(p.name) + (p.active ? '' : ' <span class="chip st-Черновик">выкл.</span>') +
+        '<div class="small ' + (sc ? 'muted' : '') + '"' + (sc ? '' : ' style="color:var(--red)"') + '>' + h(sc || 'график не задан') + '</div>' +
+        (p.type === 'Ресторан' && (!p.address || !p.phone) ? '<div class="small" style="color:var(--amber)">нет адреса или телефона</div>' : '') + '</td><td class="num small muted">' + h(p.code) + '</td></tr>';
+    }).join('') + '</tbody></table>';
+  });
+  html += '</div><div>';
+  if (!P.f) return html + '<div class="panel"><div class="empty">Выберите место слева или добавьте новое</div></div></div></div>';
+  const f = P.f, internal = f.type !== 'Поставщик';
+  const ex = S.data.places.find(p => p.name === f.name);
+  html += '<div class="panel"><h2 class="panel-title">' + (f.isNew ? 'Новое место' : h(f.name)) + '</h2>' +
+    '<div class="row">' + (f.isNew ? '<div class="field"><label>Название</label><input type="text" value="' + h(f.name) + '" placeholder="Например, БелАсва" oninput="App.plF(\'name\', this.value)"></div>' : '') +
+    '<div class="field"><label>Тип</label><select onchange="App.plF(\'type\', this.value, true)">' + PLACE_TYPES.map(t => '<option' + (t === f.type ? ' selected' : '') + '>' + t + '</option>').join('') + '</select></div>' +
+    (internal ? '<div class="field" style="max-width:120px"><label>Код</label><input type="text" maxlength="2" value="' + h(f.code) + '" placeholder="D" oninput="App.plF(\'code\', this.value)"></div>' : '') + '</div>';
+  if (internal) html += '<div class="row"><div class="field"><label>Название в накладной</label><input type="text" value="' + h(f.invoiceName) + '" oninput="App.plF(\'invoiceName\', this.value)"></div>' +
+    '<div class="field"><label>Ответственный за сборку</label><select onchange="App.plF(\'responsible\', this.value)"><option value="">—</option>' + (S.data.users || []).map(u => '<option value="' + h(u.login) + '"' + (u.login === f.responsible ? ' selected' : '') + '>' + h(u.login + ' · ' + u.name) + '</option>').join('') + '</select></div></div>';
+  html += '<div class="row"><div class="field" style="flex:2 1 260px"><label>Адрес' + (f.type === 'Ресторан' ? ' (для поставщиков)' : '') + '</label><input type="text" value="' + h(f.address) + '" oninput="App.plF(\'address\', this.value)"></div>' +
+    '<div class="field"><label>Телефон</label><input type="text" value="' + h(f.phone) + '" placeholder="+375 29 …" oninput="App.plF(\'phone\', this.value)"></div></div>';
+  if (!internal) html += '<div class="field"><label>Контакт поставщика (менеджер, Viber)</label><input type="text" value="' + h(f.contact) + '" oninput="App.plF(\'contact\', this.value)"></div>';
+  html += '<h3 class="sec">График поставок' + (f.type === 'Ресторан' ? ' (если ресторан что-то хранит и отдаёт другим)' : '') + '</h3>' +
+    '<div class="row"><div class="field" style="flex:2 1 200px"><label>Дни поставки</label><input type="text" value="' + h(f.days) + '" placeholder="Вт, Чт · Пн-Сб · ежедневно" oninput="App.plF(\'days\', this.value)"></div>' +
+    '<div class="field"><label>Приём за сколько дней</label><input type="text" inputmode="numeric" value="' + h(f.lead) + '" placeholder="0 = в день поставки" oninput="App.plF(\'lead\', this.value)"></div>' +
+    '<div class="field"><label>Приём до</label><input type="time" value="' + h(f.time) + '" oninput="App.plF(\'time\', this.value)"></div></div>' +
+    '<div class="small muted">Пример: БелАсва возит по средам, заказ в тот же день до 10:00 → «Ср», 0, 10:00. Молочка — ежедневно, за 2 дня до 12:00 → «ежедневно», 2, 12:00.</div>';
+  if (ex && ex.deliveries && ex.deliveries.length) html += '<div class="small" style="margin-top:8px"><b>Ближайшие поставки:</b> ' + ex.deliveries.filter(d => !d.closed).slice(0, 4).map(d => h(ruDay(d.date)) + ' <span class="muted">(до ' + h(dlText(d)) + ')</span>').join(' · ') + '</div>';
+  html += '<label class="chk" style="margin-top:12px"><input type="checkbox"' + (f.active !== false ? ' checked' : '') + ' onchange="App.plF(\'active\', this.checked)"> Активно</label>';
+  html += '<div class="actions"><button class="btn btn-primary" onclick="App.plSave()">' + (f.isNew ? 'Добавить' : 'Сохранить') + '</button><button class="btn btn-secondary" onclick="App.plCancel()">Отмена</button></div>';
+  if (!f.isNew) html += '<div class="small muted" style="margin-top:8px">Название не меняется: по нему на место ссылаются заявки и накладные.</div>';
+  return html + '</div></div></div>';
 };
 
 /* ============================== ПЕЧАТЬ ============================== */
@@ -995,40 +1186,53 @@ window.App = {
   logout: () => logout(false),
   tab(t){ S.tab = t; S.msg = null; if (t !== 'transfer') S.justCreated = null; render(); window.scrollTo(0,0); },
 
-  // форма заявки
-  f(k, v){ S.form[k] = v; render(); },
-  fq(v){ S.form.q = v; keepFocus(render); },
-  setQty(id, v){ const x = roundUp(id, v); if (x === '') delete S.form.qty[id]; else S.form.qty[id] = x; render(); },
-  step(id, d){ const it = itemById(id); const m = it ? it.mult || 1 : 1; const cur = num(S.form.qty[id]); const x = Math.max(0, cur + d * m); if (!x) delete S.form.qty[id]; else S.form.qty[id] = x; render(); },
-  free(k, f, v){ S.form.free[k][f] = f === 'qty' ? (num(v) || '') : v; render(); },
-  freeAdd(){ S.form.free.push({ name: '', unit: 'шт', qty: '' }); render(); },
-  freeDel(k){ S.form.free.splice(k, 1); render(); },
-  repeatLast(){
-    const f = S.form;
-    const prev = prevOrder(f.place, f.id);
-    if (!prev) return;
-    if (Object.keys(f.qty).length && !confirm('Заменить количества в форме прошлым заказом?')) return;
-    f.qty = {};
-    Object.keys(prev.map).forEach(id => { const it = itemById(id); if (it && it.active && prev.map[id] > 0) f.qty[id] = roundUp(id, prev.map[id]); });
-    S.msg = { kind: 'ok', text: 'Заполнено как ' + ruDay(prev.date) + ' — проверьте и поправьте' };
+  // заказ ресторана
+  cq(v){ S.cart.q = v; keepFocus(render); },
+  cset(id, v){ const x = roundUp(id, v); S.cart.qty[id] = x || ''; S.cart.dirty[id] = true; render(); },
+  cstep(id, d){ const it = itemById(id); const m = it ? it.mult || 1 : 1; const x = Math.max(0, num(S.cart.qty[id]) + d * m); S.cart.qty[id] = x || ''; S.cart.dirty[id] = true; render(); },
+  cfree(k, f, v){ S.cart.free[k][f] = f === 'qty' ? (num(v) || '') : v; S.cart.freeDirty = true; render(); },
+  cfreeAdd(){ S.cart.free.push({ name: '', unit: 'шт', qty: '' }); render(); },
+  cfreeDel(k){ S.cart.free.splice(k, 1); S.cart.freeDirty = true; render(); },
+  ccomment(v){ S.cart.comment = v; },
+  cartReset(){ S.cart = null; render(); },
+  cartRepeat(){
+    const prev = lastQty(), T = S.data.targets || {};
+    let n = 0;
+    Object.keys(prev).forEach(id => {
+      const it = itemById(id), t = T[id];
+      if (!it || !it.active || !t || t.none || t.locked) return;
+      const x = roundUp(id, prev[id].qty);
+      if (x && x !== num(S.cart.qty[id])) { S.cart.qty[id] = x; S.cart.dirty[id] = true; n++; }
+    });
+    S.msg = { kind: n ? 'ok' : 'warn', text: n ? 'Заполнено по прошлым заказам (' + n + ' поз.) — проверьте и нажмите «Сохранить заказ»' : 'Всё уже как в прошлый раз' };
     render();
   },
+  cartSave(){
+    const C = S.cart;
+    const items = Object.keys(C.dirty).map(id => ({ itemId: id, qty: num(C.qty[id]) }));
+    const body = { items: items, comment: str(C.comment) };
+    if (C.freeDirty) body.free = C.free.filter(x => str(x.name) && num(x.qty) > 0).map(x => ({ name: str(x.name), unit: str(x.unit) || 'шт', qty: num(x.qty) }));
+    run(async () => { const r = await api('saveCart', body); S.cart = null; await reload(); return r; },
+      r => r.saved.length ? 'Сохранено: ' + r.saved.map(x => ruDay(x.date) + ' — ' + x.count + ' поз.').join(', ') : 'Заказ очищен');
+  },
+
+  // заявка целиком
+  rf(k, v, quiet){ S.form[k] = v; if (k === 'source' && v) { const p = place(v); const d = p && p.deliveries ? p.deliveries.find(x => !x.closed) : null; if (d && !S.form.shipDate) S.form.shipDate = d.date; } if (!quiet) render(); },
+  rfl(k, v){ const l = S.form.lines[k]; l.qty = l.itemId ? roundUp(l.itemId, v) : (num(v) || ''); render(); },
+  rflDel(k){ S.form.lines.splice(k, 1); render(); },
   cancelEdit(){ S.form = null; S.tab = isRest() ? 'mine' : 'inbox'; render(); },
-  saveReq(submit){
+  saveReq(){
     const f = S.form;
-    if (!f.place) { S.msg = { kind: 'err', text: 'Выберите ресторан' }; return render(); }
-    const lines = Object.keys(f.qty).filter(k => num(f.qty[k]) > 0).map(k => ({ itemId: k, qty: num(f.qty[k]) }))
-      .concat(f.free.filter(x => str(x.name) && num(x.qty) > 0).map(x => ({ name: str(x.name), unit: str(x.unit) || 'шт', qty: num(x.qty) })));
+    if (isSuper() && !f.place) { S.msg = { kind: 'err', text: 'Выберите получателя' }; return render(); }
+    const lines = f.lines.filter(l => num(l.qty) > 0).map(l => l.itemId ? { itemId: l.itemId, qty: num(l.qty) } : { name: l.name, unit: l.unit, qty: num(l.qty) });
     run(async () => {
-      const r = await api('saveRequest', { id: f.id, updatedAt: f.updatedAt, place: f.place, shipDate: f.shipDate, comment: f.comment, submit: submit, lines: lines });
-      S.form = null;
-      await reload();
+      const r = await api('saveRequest', { id: f.id, updatedAt: f.updatedAt, place: f.place, source: f.source, shipDate: f.shipDate, comment: f.comment, lines: lines });
+      S.form = null; await reload();
       if (isRest()) { S.tab = 'mine'; S.mineSel = r.id; } else { S.tab = 'inbox'; S.inbox.sel = r.id; }
       return r;
-    }, r => submit ? 'Заявка ' + r.id + ' отправлена' + (r.late ? ' (поздняя)' : '') : 'Черновик ' + r.id + ' сохранён');
+    }, r => 'Заявка ' + r.id + ' сохранена');
   },
-  editReq(id){ const r = S.data.requests.find(x => x.id === id); S.form = formFromRequest(r); S.tab = 'new'; S.msg = null; render(); },
-  withdraw(id){ const r = S.data.requests.find(x => x.id === id); run(async () => { await api('withdrawRequest', { id: id, updatedAt: r.updatedAt }); await reload(); }, 'Заявка отозвана в черновик'); },
+  editReq(id){ const r = S.data.requests.find(x => x.id === id); S.form = formFromRequest(r); S.tab = 'req'; S.msg = null; render(); },
   delReq(id){
     if (!confirm('Удалить заявку ' + id + '?')) return;
     const r = S.data.requests.find(x => x.id === id);
@@ -1040,21 +1244,28 @@ window.App = {
   inbox(k, v){ S.inbox[k] = v; render(); },
   open(id){ S.inbox.sel = id; S.msg = null; S.ed = null; render(); },
   ed(lineId, k, v){ S.ed.lines[lineId][k] = v; },
+  edPack(lineId, v){
+    const e = S.ed.lines[lineId], l = S.data.lines.find(x => x.lineId === lineId), it = l && itemById(l.itemId);
+    e.pack = v;
+    const p = it && it.packs ? it.packs.find(x => x.name === v) : null;
+    if (p && p.supplier) e.from = p.supplier;
+    render();
+  },
   edC(v){ S.ed.purchaseComment = v; },
   edAdd(k, f, v){ S.ed.added[k][f] = v; },
+  edAddPack(k, v){ const a = S.ed.added[k], it = itemById(a.itemId); a.pack = v; const p = it && it.packs ? it.packs.find(x => x.name === v) : null; if (p && p.supplier) a.from = p.supplier; render(); },
   edAddDel(k){ S.ed.added.splice(k, 1); render(); },
-
   take(){ const E = S.ed; run(async () => { await api('takeRequest', { id: E.id }); S.ed = null; await reload(); }, 'Заявка взята в работу, ресторан больше не может её менять'); },
   review(decision){
     const E = S.ed;
     const r = S.data.requests.find(x => x.id === E.id);
     if (decision === 'return' && !str(E.purchaseComment)) { S.msg = { kind: 'err', text: 'Напишите в «Комментарий закупок», что нужно исправить' }; return render(); }
-    const lines = Object.keys(E.lines).map(id => ({ lineId: id, approved: E.lines[id].approved, from: E.lines[id].from, comment: E.lines[id].comment }))
-      .concat(E.added.filter(a => num(a.approved) > 0).map(a => ({ itemId: a.itemId, approved: a.approved, from: a.from })));
+    const lines = Object.keys(E.lines).map(id => ({ lineId: id, approved: E.lines[id].approved, from: E.lines[id].from, comment: E.lines[id].comment, pack: E.lines[id].pack }))
+      .concat(E.added.filter(a => num(a.approved) > 0).map(a => ({ itemId: a.itemId, approved: a.approved, from: a.from, pack: a.pack })));
     run(async () => {
       const res = await api('reviewRequest', { id: E.id, updatedAt: r.updatedAt, decision: decision, purchaseComment: E.purchaseComment, lines: lines });
       S.ed = null; await reload(); return res;
-    }, res => decision === 'approve' ? 'Утверждено. Накладные: ' + res.invoices.join(', ') : decision === 'return' ? 'Заявка возвращена ресторану' : 'Сохранено');
+    }, res => decision === 'approve' ? 'Утверждено' + (res.invoices.length ? '. Накладные: ' + res.invoices.join(', ') : ' (поставщик везёт сам — накладных нет)') : decision === 'return' ? 'Заявка возвращена ресторану' : 'Сохранено');
   },
   adjust(){
     const E = S.ed;
@@ -1074,8 +1285,9 @@ window.App = {
   },
   sumDate(v){ S.sumDate = v; render(); },
   drvDate(v){ S.drvDate = v; render(); },
-  copyDrv(){
-    const t = driverText(S.drvDate);
+  msgTab(t){ S.msgTab = t; S.msg = null; render(); },
+  copyMsg(){
+    const el = document.getElementById('drv-text'); const t = el ? el.textContent : '';
     const done = () => { S.msg = { kind: 'ok', text: 'Скопировано' }; render(); };
     if (navigator.clipboard) navigator.clipboard.writeText(t).then(done, () => { fallbackCopy(t); done(); });
     else { fallbackCopy(t); done(); }
@@ -1118,16 +1330,36 @@ window.App = {
   catSel(id){ S.cat.sel = id; S.cat.f = catForm(itemById(id)); S.msg = null; render(); },
   catF(k, v, rerender){ S.cat.f[k] = v; if (rerender) render(); },
   catCancel(){ S.cat.sel = null; S.cat.f = null; render(); },
+  packAdd(){ const f = S.cat.f; f.packs.push({ name: '', amount: '', supplier: f.from && place(f.from) && place(f.from).type === 'Поставщик' ? f.from : '', isDefault: !f.packs.length, active: true }); render(); },
+  packF(k, key, v){ S.cat.f.packs[k][key] = v; },
+  packDef(k){ S.cat.f.packs.forEach((p, i) => { p.isDefault = i === k; }); },
+  packDel(k){ S.cat.f.packs.splice(k, 1); render(); },
   catSave(){
     const f = S.cat.f;
-    const body = { id: f.id, name: str(f.name), category: f.category, unit: str(f.unit), mult: num(f.mult), from: f.from,
-                   responsible: f.responsible, order: str(f.order), active: !!f.active, comment: str(f.comment) };
+    const body = { id: f.id, name: str(f.name), category: f.category, newCategory: str(f.newCategory), unit: str(f.unit), mult: num(f.mult), from: f.from, newSupplier: str(f.newSupplier),
+                   responsible: f.responsible, order: str(f.order), active: !!f.active, comment: str(f.comment), baseUnit: str(f.baseUnit), base: num(f.base),
+                   packs: f.packs.map(p => ({ id: p.id, name: str(p.name), amount: num(p.amount), supplier: p.supplier, isDefault: !!p.isDefault, active: p.active !== false })) };
     run(async () => {
       const r = await api('saveItem', body);
       await reload();
       S.cat.sel = r.id; S.cat.f = catForm(itemById(r.id));
       return r;
     }, () => f.id ? 'Сохранено' : 'Позиция «' + str(f.name) + '» добавлена в справочник');
+  },
+  // места
+  plNew(){ S.plc.sel = null; S.plc.f = placeForm(null); S.msg = null; render(); },
+  plSel(name){ S.plc.sel = name; S.plc.f = placeForm(place(name)); S.msg = null; render(); },
+  plF(k, v, rerender){ S.plc.f[k] = v; if (rerender) render(); },
+  plCancel(){ S.plc.sel = null; S.plc.f = null; render(); },
+  plSave(){
+    const f = S.plc.f;
+    run(async () => {
+      const r = await api('savePlace', { isNew: f.isNew, name: str(f.name), type: f.type, code: str(f.code), invoiceName: str(f.invoiceName), responsible: f.responsible,
+        address: str(f.address), phone: str(f.phone), days: str(f.days), lead: str(f.lead), time: str(f.time), contact: str(f.contact), active: f.active !== false });
+      await reload();
+      S.plc.sel = r.name; S.plc.f = placeForm(place(r.name));
+      return r;
+    }, () => f.isNew ? 'Добавлено' : 'Сохранено');
   },
 
   // поиск позиции
@@ -1145,7 +1377,12 @@ window.App = {
     const typed = input.value.trim();
     if (key === 'ed') {
       const it = itemById(id); if (!it) return;
-      S.ed.added.push({ itemId: id, approved: '', from: it.from || '' });
+      const dp = (it.packs || []).find(p => p.isDefault && p.active) || (it.packs || []).find(p => p.active);
+      S.ed.added.push({ itemId: id, approved: '', from: it.source || it.from || '', pack: dp ? dp.name : '' });
+    } else if (key === 'rf') {
+      const it = itemById(id); if (!it) return;
+      if (!S.form.lines.some(l => l.itemId === id)) S.form.lines.push({ itemId: id, name: it.name, unit: it.unitLabel || it.unit, qty: '' });
+      if (!S.form.source && it.source) S.form.source = it.source;
     } else if (key.indexOf('tr:') === 0) {
       const l = S.tr.lines[Number(key.slice(3))];
       if (id === '__free') { l.itemId = '__free'; l.name = typed; l.unit = l.unit || 'шт'; }
@@ -1166,7 +1403,7 @@ function comboOpts(el){
   const key = el.parentNode.getAttribute('data-key');
   const q = el.value.trim();
   const list = comboMatch(q).slice(0, 10);
-  const opts = list.map(i => ({ id: i.id, label: i.name, meta: i.unit + (i.mult > 1 ? ' · кратно ' + fmtN(i.mult) : '') }));
+  const opts = list.map(i => ({ id: i.id, label: i.name, meta: (i.unitLabel || i.unit) + (i.mult > 1 ? ' · кратно ' + fmtN(i.mult) : '') + (i.source ? ' · ' + i.source : '') }));
   if (key.indexOf('tr:') === 0 && q) opts.push({ id: '__free', label: 'Вписать «' + q + '» вручную', meta: '', free: true });
   return opts;
 }
