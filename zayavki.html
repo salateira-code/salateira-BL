@@ -1,7 +1,16 @@
 <!--
   Salateira · Заявки на расходники (zayavki.html)
-  Версия 2.3
+  Версия 2.6
 
+  2.6 — рестораны сами присылают пересчёт (вкладка «Пересчёт»); в остатки он попадает только после
+        утверждения Таней («Остатки → Пересчёты ресторанов»). Нужен Code.gs ≥ 2.4.0.
+  2.5 — инвентаризацию можно вводить в фасовке (рулоны, банки) — пересчёт в единицу учёта.
+        Нужен Code.gs ≥ 2.3.0 (ускорение: каждый лист читается один раз за запрос, правки пишутся пачкой).
+  2.4 — остатки и приёмка. Ресторан: в «Моих заявках» блок «Ждут приёмки» — «Принять без
+        разногласий» / «Принять с правками» для заявок и входящих перемещений. Закупки: вкладка
+        «Остатки» (по позициям с разбивкой по местам и правкой, инвентаризация места целиком),
+        остаток и «ожидается» под позицией в поставке, приёмка за склад; в отчёте — расход
+        по инвентаризации. Нужен Code.gs ≥ 2.2.0 и один раз migrateV3().
   2.3 — «Поставки» у закупок: список поставок (источник + дата) вместо заявок по ресторанам;
         одна общая таблица позиций с разбивкой по ресторанам, «Утвердить поставку» сразу для всех,
         возврат одного ресторана; сохранение быстрее — свежие данные приходят в ответе.
@@ -158,6 +167,8 @@
   .st-Возвращена{ background:var(--red-soft); color:var(--red); }
   .st-Утверждена{ background:var(--ok-soft); color:var(--ok); }
   .st-Отгружена{ background:#E9E6F1; color:#4A4560; }
+  .st-Получена{ background:var(--ok-soft); color:var(--ok); }
+  .st-Получена-с-расхождением{ background:var(--amber-soft); color:var(--amber); }
   .chip.late{ background:var(--red-soft); color:var(--red); }
 
   .items-grid{ display:grid; grid-template-columns:1fr 1fr; column-gap:36px; }
@@ -251,7 +262,7 @@
 'use strict';
 
 const API = 'https://script.google.com/macros/s/AKfycbyFzdhhkVtxq8RWyaUzDBZAqe_M7sLbNgYOVMuly4HHmqLzse5b-5yhAE72PjWscjcF/exec';
-const VERSION = '2.3';
+const VERSION = '2.6';
 const LOGO = '<svg class="logo-mark" viewBox="0 0 1059 188" xmlns="http://www.w3.org/2000/svg" aria-label="Salateira"><path d="M611.586 107.247C617.466 33.8785 734.55 28.51 738.384 107.247C738.384 120.54 732.509 125.577 714.354 126.676H646.098C646.098 153.262 666.549 172.691 697.226 159.397C706.94 153.773 712.564 146.301 717.677 143.037C729.692 135.368 742.162 148.332 734.805 159.397C703.361 206.691 601.105 195.699 611.586 107.247ZM551.401 2.06641C560.578 2.06654 568.017 9.50577 568.017 18.6826V53.4678H583.643C590.138 53.4679 595.403 58.733 595.403 65.2275C595.403 71.722 590.138 76.9872 583.643 76.9873H568.017V149.798C569.105 157.145 571.859 158.706 574.615 159.854C577.938 160.877 582.796 161.464 593.277 158.064C603.758 154.666 616.028 172.892 595.322 182.351C574.615 191.809 533.713 188.997 534.735 153.463L534.804 153.449C534.791 153.181 534.785 152.91 534.785 152.639V76.9873H526.379C519.885 76.9873 514.62 71.7221 514.62 65.2275C514.62 58.733 519.885 53.4678 526.379 53.4678H534.785V18.6826C534.785 9.50569 542.224 2.06641 551.401 2.06641ZM783.589 50.1328C792.766 50.133 800.205 57.5722 800.206 66.749V170.028C800.205 179.205 792.766 186.644 783.589 186.645C774.412 186.645 766.973 179.205 766.973 170.028V66.749C766.973 57.5721 774.412 50.1328 783.589 50.1328ZM850.588 50.1328C859.765 50.1328 867.204 57.5721 867.205 66.749V68.8203C878.771 46.6922 897.178 47.8161 912.415 54.3105C937.723 64.0246 922.128 88.4264 907.045 82.9424C877.779 72.3012 869.743 84.3673 867.205 129.686V170.028C867.204 179.205 859.765 186.645 850.588 186.645C841.412 186.644 833.972 179.205 833.972 170.028V66.749C833.972 57.5722 841.412 50.133 850.588 50.1328ZM336.192 0C345.369 4.01144e-07 352.808 7.4391 352.808 16.6162V170.001C352.808 179.178 345.369 186.617 336.192 186.617C327.015 186.617 319.576 179.178 319.576 170.001V16.6162C319.576 7.4392 327.015 0.000164922 336.192 0ZM172.831 73.6973C186.635 44.8099 284.545 34.5843 284.545 88.5244L286.335 150.134C288.015 158.223 291.666 165.459 291.666 171.097C291.665 188.48 268.44 195.127 255.147 167.518C233.929 182.089 218.846 190.526 190.214 183.879C155.192 171.608 152.38 126.103 190.214 113.321L252.846 99.0059C252.846 62.705 206.065 70.8853 197.628 88.5244C187.358 109.998 160.211 100.105 172.831 73.6973ZM388.629 73.6973C402.434 44.8099 500.344 34.5843 500.344 88.5244L502.134 150.134C503.814 158.223 507.464 165.459 507.464 171.097C507.464 188.48 484.239 195.127 470.946 167.518C449.728 182.089 434.645 190.526 406.013 183.879C370.99 171.608 368.178 126.103 406.013 113.321L468.645 99.0059C468.645 62.705 421.864 70.8853 413.427 88.5244C403.157 109.998 376.01 100.105 388.629 73.6973ZM3.59721 46.8545C3.59721 -7.59644 117.868 -19.6115 134.485 38.9297C139.086 59.8927 110.551 74.4792 101.252 46.8545C92.5596 21.0354 44.7549 17.712 37.3413 46.8545C35.8076 73.186 92.3796 73.4214 112.755 83.4121C152.38 102.841 151.869 151.923 117.869 174.675C85.1468 194.615 9.98783 191.037 0.528848 140.42C-4.1049 115.623 23.0256 107.953 30.6949 128.148C44.7548 159.337 70.0459 163.419 90.771 154.99C108.893 147.62 112.5 117.978 90.771 111.531C35.2011 95.0457 3.59722 93.6373 3.59721 46.8545ZM939.535 73.4414C953.339 44.5541 1051.25 34.3286 1051.25 88.2686L1053.04 149.878C1054.72 157.967 1058.37 165.203 1058.37 170.841C1058.37 188.224 1035.15 194.871 1021.85 167.262C1000.63 181.833 985.55 190.27 956.918 183.623C921.896 171.352 919.084 125.849 956.918 113.066L1019.55 98.75C1019.55 62.4493 972.769 70.6295 964.333 88.2686C954.062 109.742 926.915 99.8493 939.535 73.4414ZM252.846 119.201C232.395 126.615 213.733 128.532 207.086 131.472C193.793 137.351 194.56 154.991 207.086 161.638C223.703 169.051 250.801 157.548 252.846 134.54V119.201ZM468.645 119.201C448.194 126.615 429.532 128.532 422.885 131.472C409.592 137.351 410.359 154.991 422.885 161.638C439.502 169.051 466.6 157.548 468.645 134.54V119.201ZM1019.55 118.945C999.099 126.359 980.438 128.277 973.792 131.217C960.498 137.097 961.265 154.735 973.792 161.382C990.408 168.795 1017.51 157.292 1019.55 134.284V118.945ZM676.775 73.7578C658.369 73.7578 649.166 85.2621 646.098 107.247H706.173C704.128 87.0516 695.692 73.7578 676.775 73.7578ZM783.594 2.06641C792.771 2.06644 800.211 9.50571 800.211 18.6826C800.211 27.8597 792.771 35.2988 783.594 35.2988H783.055C773.878 35.2988 766.439 27.8597 766.439 18.6826C766.439 9.50569 773.878 2.06641 783.055 2.06641H783.594Z" fill="#7002FF"/></svg>';
 const TOKEN_KEY = 'slt_zayavki_token';
 const WD = ['вс','пн','вт','ср','чт','пт','сб'];
@@ -269,6 +280,9 @@ const S = {
   mineSel: null,       // выбранная заявка в «Мои заявки»
   inbox: { status: 'active', sel: null, sup: null },
   sup: null,           // редактор поставки
+  acc: null,           // приёмка «с правками»
+  stk: { mode: 'items', q: '', open: '', vals: {}, units: {}, place: '', note: '', cnt: '', cntLoaded: '', cntVals: {}, cntNote: '' },
+  cnt: { q: '', vals: {}, units: {}, comment: '', loaded: '' },   // пересчёт ресторана   // остатки
   pendingData: null,   // свежие данные из ответа на сохранение
   cart: null,          // заказ ресторана
   plc: { sel: null, f: null },   // места
@@ -415,11 +429,14 @@ function tabs(){
   const nTasks = S.data && S.data.tasks ? S.data.tasks.filter(t => t.date >= todayYmd() && t.status !== 'Отгружена').length : 0;
   if (r === 'Ресторан') {
     T.push({ id: 'cart', title: 'Заказ' });
-    T.push({ id: 'mine', title: 'Мои заявки' });
+    const nAcc = S.data ? toAccept().reqs.length + toAccept().invs.length : 0;
+    T.push({ id: 'mine', title: 'Мои заявки', cnt: nAcc });
     if (S.form && S.form.id) T.push({ id: 'req', title: 'Заявка ' + S.form.id });
     T.push({ id: 'tasks', title: 'Собрать', cnt: nTasks });
     T.push({ id: 'transfer', title: 'Перемещение' });
     T.push({ id: 'invoices', title: 'Накладные' });
+    const oc = S.data ? myOpenCount() : null;
+    T.push({ id: 'count', title: 'Пересчёт', cnt: oc && oc.status === 'Возвращён' ? 1 : 0 });
   } else if (r === 'Закупки' || r === 'Админ') {
     const nNew = S.data ? supplies().filter(s => s.reqs.some(r => ACTIVE_ST.indexOf(r.status) >= 0)).length : 0;
     T.push({ id: 'inbox', title: 'Поставки', cnt: nNew });
@@ -428,6 +445,7 @@ function tabs(){
     T.push({ id: 'req', title: S.form && S.form.id ? 'Заявка ' + S.form.id : 'Заявка вручную' });
     T.push({ id: 'transfer', title: 'Перемещение' });
     T.push({ id: 'invoices', title: 'Накладные' });
+    T.push({ id: 'stock', title: 'Остатки', cnt: S.data ? pendingCounts().length : 0 });
     T.push({ id: 'catalog', title: 'Справочник' });
     T.push({ id: 'places', title: 'Места' });
     T.push({ id: 'movements', title: 'Отчёт по перемещениям' });
@@ -616,25 +634,42 @@ function combo(key, value){
     ' onfocus="this.select();App.comboIn(this)" oninput="App.comboIn(this)" onkeydown="App.comboKey(event,this)" onblur="App.comboBlur(this)"><div class="combo-list"></div></div>';
 }
 
-/* ---------- Мои заявки (ресторан) ---------- */
+/* ---------- Мои заявки (ресторан): заявки и приёмка ---------- */
 function reqCats(r){ return uniq(linesOf(r.id).map(l => { const it = itemById(l.itemId); return it ? it.category : 'Нет в списке'; })).join(', '); }
+const TO_ACCEPT = ['Утверждена','Отгружена'];
+// Что ждёт приёмки у этого пользователя: заявки и входящие перемещения
+function toAccept(){
+  const me = S.data.user.place, t0 = todayYmd();
+  const reqs = S.data.requests.filter(r => TO_ACCEPT.indexOf(r.status) >= 0 && r.shipDate <= t0 && (isSuper() || r.place === me));
+  const invs = S.data.invoices.filter(i => i.type === 'Между ресторанами' && !i.acceptedAt && i.date <= t0 && (isSuper() || i.to === me));
+  return { reqs, invs };
+}
 VIEWS.mine = function(){
   const reqs = S.data.requests.slice().sort((a,b) => b.shipDate.localeCompare(a.shipDate) || b.id.localeCompare(a.id));
-  if (!reqs.length) return '<div class="panel"><div class="empty">Заявок пока нет</div></div>';
-  if (!S.mineSel || !reqs.some(r => r.id === S.mineSel)) S.mineSel = reqs[0].id;
-  let html = '<div class="split"><div class="panel"><h2 class="panel-title">Мои заявки</h2><div class="card-list">';
-  reqs.forEach(r => {
-    html += '<div class="card' + (r.id === S.mineSel ? ' sel' : '') + '" onclick="App.mineSel(\'' + r.id + '\')"><div class="top"><span class="title">' + h(ruDay(r.shipDate)) + '</span>' + chip(r.status) + '</div>' +
-      '<div class="small muted">' + h(reqCats(r)) + ' · позиций: ' + linesOf(r.id).length + '</div></div>';
-  });
-  html += '</div></div><div>' + requestDetail(S.data.requests.find(r => r.id === S.mineSel), 'rest') + '</div></div>';
-  return html;
+  const ta = toAccept();
+  if (!reqs.length && !ta.invs.length) return '<div class="panel"><div class="empty">Заявок пока нет</div></div>';
+  const ids = reqs.map(r => r.id).concat(ta.invs.map(i => 'inv:' + i.no));
+  if (!S.mineSel || ids.indexOf(S.mineSel) < 0) S.mineSel = ta.reqs[0] ? ta.reqs[0].id : (ta.invs[0] ? 'inv:' + ta.invs[0].no : reqs[0].id);
+  const card = r => '<div class="card' + (r.id === S.mineSel ? ' sel' : '') + '" onclick="App.mineSel(\'' + r.id + '\')"><div class="top"><span class="title">' + h(ruDay(r.shipDate)) + '</span>' + chip(r.status) + '</div>' +
+    '<div class="small muted">' + h(reqCats(r)) + ' · позиций: ' + linesOf(r.id).length + '</div></div>';
+  let html = '<div class="split"><div class="panel"><h2 class="panel-title">Мои заявки</h2>';
+  if (ta.reqs.length || ta.invs.length) {
+    html += '<h3 class="sec" style="margin-top:0;color:var(--amber)">Ждут приёмки</h3><div class="card-list">' + ta.reqs.map(card).join('') +
+      ta.invs.map(i => '<div class="card' + ('inv:' + i.no === S.mineSel ? ' sel' : '') + '" onclick="App.mineSel(\'inv:' + h(i.no) + '\')"><div class="top"><span class="title">' + h(ruDay(i.date)) + '</span><span class="chip st-Отгружена">перемещение</span></div>' +
+        '<div class="small muted">от ' + h(i.from) + ' · ' + h(i.no) + ' · позиций: ' + movOf(i.no).length + '</div></div>').join('') + '</div><h3 class="sec">Все заявки</h3>';
+  }
+  html += '<div class="card-list">' + reqs.filter(r => ta.reqs.indexOf(r) < 0).map(card).join('') + '</div></div><div>';
+  if (S.mineSel.indexOf('inv:') === 0) html += transferAccept(S.data.invoices.find(i => i.no === S.mineSel.slice(4)));
+  else html += requestDetail(S.data.requests.find(r => r.id === S.mineSel), 'rest');
+  return html + '</div></div>';
 };
 
 function requestDetail(r, mode){
   if (!r) return '';
   const ls = linesOf(r.id);
-  const showApproved = ls.some(l => l.approved !== null) || ['Утверждена','Отгружена'].indexOf(r.status) >= 0;
+  const showApproved = ls.some(l => l.approved !== null) || TO_ACCEPT.indexOf(r.status) >= 0;
+  const showGot = ls.some(l => l.received !== null);
+  const acc = S.acc && S.acc.id === r.id ? S.acc : null;   // режим «Принять с правками»
   let html = '<div class="panel"><h2 class="panel-title">Заявка ' + h(r.id) + ' ' + chip(r.status) + '</h2>';
   html += '<dl class="kv"><dt>Получатель</dt><dd>' + h(r.place) + '</dd><dt>Поставка</dt><dd>' + h(ruDay(r.shipDate)) + '</dd>' +
     (r.source ? '<dt>Источник</dt><dd>' + h(r.source) + '</dd>' : '') +
@@ -642,20 +677,33 @@ function requestDetail(r, mode){
     (r.approvedAt ? '<dt>Утверждена</dt><dd>' + h(ruDT(r.approvedAt)) + ' · ' + h(r.approvedBy) + '</dd>' : '') + '</dl>';
   if (r.comment) html += '<div class="msg info">Комментарий ресторана: ' + h(r.comment) + '</div>';
   if (r.purchaseComment) html += '<div class="msg warn">Комментарий закупок: ' + h(r.purchaseComment) + '</div>';
-  html += '<div class="t-wrap"><table class="t"><thead><tr><th>Позиция</th><th class="num">Запрошено</th>' + (showApproved ? '<th class="num">Утверждено</th>' : '') + '<th>Комментарий закупок</th></tr></thead><tbody>';
+  html += '<div class="t-wrap"><table class="t"><thead><tr><th>Позиция</th><th class="num">Запрошено</th>' + (showApproved ? '<th class="num">Утверждено</th>' : '') +
+    (acc || showGot ? '<th class="num" style="width:110px">Получено</th>' : '') + '<th>Комментарий закупок</th></tr></thead><tbody>';
   ls.forEach(l => {
     let ap = '';
+    const a = l.approved === null ? l.requested : l.approved;
     if (showApproved) {
-      const a = l.approved === null ? l.requested : l.approved;
       const cls = l.requested === null ? 'diff-up' : (a < l.requested ? 'diff-down' : (a > l.requested ? 'diff-up' : ''));
       ap = '<td class="num ' + cls + '">' + (a === null ? '' : fmtN(a)) + '</td>';
     }
+    let got = '';
+    if (acc) got = a ? '<td><input type="text" inputmode="decimal" style="text-align:right" value="' + h(acc.lines[l.lineId]) + '" oninput="App.accLine(\'' + l.lineId + '\', this.value)"></td>' : '<td></td>';
+    else if (showGot) got = '<td class="num' + (l.received !== null && l.received !== a ? ' diff-down' : '') + '">' + (l.received === null ? '' : fmtN(l.received)) + '</td>';
     html += '<tr><td>' + h(l.name) + ' <span class="muted small">' + h(l.pack || l.unit) + '</span>' + (l.requested === null ? ' <span class="chip st-Утверждена">добавлено</span>' : '') + '</td>' +
-      '<td class="num">' + (l.requested === null ? '—' : fmtN(l.requested)) + '</td>' + ap + '<td class="small">' + h(l.comment) + '</td></tr>';
+      '<td class="num">' + (l.requested === null ? '—' : fmtN(l.requested)) + '</td>' + ap + got + '<td class="small">' + h(l.comment) + '</td></tr>';
   });
   html += '</tbody></table></div>';
   const invs = S.data.invoices.filter(i => i.basis === r.id);
   if (invs.length) html += '<div class="actions">' + invs.map(i => '<button class="btn btn-secondary btn-sm" onclick="App.print([\'' + h(i.no) + '\'])">Печать ' + h(i.no) + '</button>').join('') + '</div>';
+  // Приёмка: ресторан-получатель или закупки
+  const canAcc = TO_ACCEPT.indexOf(r.status) >= 0 && (isSuper() || r.place === S.data.user.place);
+  if (canAcc && (mode === 'rest' || isSuper())) {
+    if (!acc) html += '<div class="actions"><button class="btn btn-primary" onclick="App.accept(\'' + r.id + '\')">Принять без разногласий</button>' +
+      '<button class="btn btn-secondary" onclick="App.accStart(\'' + r.id + '\')">Принять с правками</button></div>' +
+      (r.shipDate > todayYmd() ? '<div class="small muted" style="margin-top:6px">Поставка ' + h(ruDay(r.shipDate)) + ' — принимайте, когда товар приедет.</div>' : '');
+    else html += '<div class="small muted" style="margin-top:6px">Впишите, сколько фактически приехало. Тане придёт уведомление о расхождении.</div>' +
+      '<div class="actions"><button class="btn btn-primary" onclick="App.accept(\'' + r.id + '\', true)">Подтвердить приёмку</button><button class="btn btn-secondary" onclick="App.accCancel()">Отмена</button></div>';
+  }
   if (mode === 'rest') {
     const a = [];
     if (['Отправлена','Возвращена'].indexOf(r.status) >= 0) a.push('<button class="btn btn-primary" onclick="App.editReq(\'' + r.id + '\')">' + (r.status === 'Возвращена' ? 'Исправить и отправить' : 'Изменить') + '</button>');
@@ -666,6 +714,148 @@ function requestDetail(r, mode){
   html += '</div>';
   return html;
 }
+
+function transferAccept(i){
+  if (!i) return '';
+  const ms = movOf(i.no);
+  const acc = S.acc && S.acc.id === 'inv:' + i.no ? S.acc : null;
+  let html = '<div class="panel"><h2 class="panel-title">Перемещение ' + h(i.no) + '</h2><dl class="kv"><dt>Откуда</dt><dd>' + h(i.from) + '</dd><dt>Куда</dt><dd>' + h(i.to) + '</dd><dt>Дата</dt><dd>' + h(ruDay(i.date)) + '</dd><dt>Основание</dt><dd>' + h(i.basis) + '</dd></dl>' +
+    '<table class="t"><thead><tr><th>Позиция</th><th class="num">Отправлено</th>' + (acc ? '<th class="num" style="width:110px">Получено</th>' : '') + '</tr></thead><tbody>' +
+    ms.map(m => { const key = m.itemId || m.name; return '<tr><td>' + h(m.name) + ' <span class="muted small">' + h(m.unit) + '</span></td><td class="num">' + fmtN(m.qty) + '</td>' +
+      (acc ? '<td><input type="text" inputmode="decimal" style="text-align:right" value="' + h(acc.lines[key]) + '" oninput="App.accLine(\'' + h(key) + '\', this.value)"></td>' : '') + '</tr>'; }).join('') + '</tbody></table>';
+  html += !acc ? '<div class="actions"><button class="btn btn-primary" onclick="App.acceptTr(\'' + h(i.no) + '\')">Принять без разногласий</button><button class="btn btn-secondary" onclick="App.accStartTr(\'' + h(i.no) + '\')">Принять с правками</button>' +
+      '<button class="btn btn-secondary" onclick="App.preview([\'' + h(i.no) + '\'])">Просмотреть накладную</button></div>'
+    : '<div class="actions"><button class="btn btn-primary" onclick="App.acceptTr(\'' + h(i.no) + '\', true)">Подтвердить приёмку</button><button class="btn btn-secondary" onclick="App.accCancel()">Отмена</button></div>';
+  return html + '</div>';
+}
+
+/* ---------- Пересчёт остатков (ресторан) ---------- */
+const CNT_OPEN = ['На проверке','Возвращён'];
+function myOpenCount(){ return (S.data.counts || []).find(c => CNT_OPEN.indexOf(c.status) >= 0); }
+VIEWS.count = function(){
+  const K = S.cnt, open = myOpenCount();
+  if (open && K.loaded !== open.id) {   // подставляем отправленные цифры для исправления
+    K.loaded = open.id; K.vals = {}; K.units = {}; K.comment = open.comment || '';
+    open.lines.forEach(l => { K.vals[l.itemId] = String(l.qty).replace('.', ','); });
+  }
+  const items = S.data.items.filter(i => i.active && (!K.q || i.name.toLowerCase().indexOf(K.q.toLowerCase()) >= 0));
+  const cats = uniq(S.data.categories.concat(items.map(i => i.category)));
+  let html = '<div class="panel"><h2 class="panel-title">Пересчёт остатков' + (open ? ' ' + chip(open.status) : '') + '</h2>';
+  if (open && open.status === 'На проверке') html += '<div class="msg info">Пересчёт ' + h(open.id) + ' от ' + h(ru(open.date)) + ' отправлен закупкам. В остатки он попадёт после проверки. Пока его не проверили, можно исправить и отправить снова.</div>';
+  if (open && open.status === 'Возвращён') html += '<div class="msg warn">Закупки вернули пересчёт' + (open.purchaseComment ? ': ' + h(open.purchaseComment) : '') + '. Исправьте и отправьте снова.</div>';
+  html += '<div class="small muted" style="margin-bottom:8px">Посчитайте, сколько есть на месте, и впишите. Можно в единице учёта (шт, г) или в фасовке — выберите справа. Пустое поле — позицию не считали.</div>' +
+    '<div class="row"><div class="field" style="max-width:320px"><label>Поиск</label><input type="text" id="cnt-q" value="' + h(K.q) + '" oninput="App.cntQ(this.value)"></div>' +
+    '<div class="field"><label>Комментарий</label><input type="text" value="' + h(K.comment) + '" oninput="App.cntComment(this.value)"></div></div>';
+  cats.forEach(cat => {
+    const list = items.filter(i => i.category === cat);
+    if (!list.length) return;
+    html += '<h3 class="sec">' + h(cat) + '</h3><table class="t"><tbody>' + list.map(i => '<tr><td>' + h(i.name) + '</td>' +
+      '<td style="width:120px"><input type="text" inputmode="decimal" style="text-align:right" value="' + h(K.vals[i.id] === undefined ? '' : K.vals[i.id]) + '" oninput="App.cntVal(\'' + i.id + '\', this.value)"></td>' +
+      '<td style="width:190px">' + countUnitSelect(i, K.units, 'cntUnit') + '</td></tr>').join('') + '</tbody></table>';
+  });
+  html += '<div class="actions"><button class="btn btn-primary" onclick="App.cntSend()">' + (open ? 'Отправить исправленный пересчёт' : 'Отправить пересчёт') + '</button></div>';
+  const done = (S.data.counts || []).filter(c => c.status === 'Утверждён').sort((a,b) => b.date.localeCompare(a.date)).slice(0, 6);
+  if (done.length) html += '<h3 class="sec">Утверждённые</h3><div class="small">' + done.map(c => h(ru(c.date)) + ' · ' + h(c.id) + ' · позиций: ' + c.lines.length + (c.reviewedBy ? ' · проверил ' + h(c.reviewedBy) : '')).join('<br>') + '</div>';
+  return html + '</div>';
+};
+
+/* ---------- Пересчёты ресторанов на проверке (закупки) ---------- */
+function pendingCounts(){ return (S.data.counts || []).filter(c => c.status === 'На проверке').sort((a,b) => a.createdAt.localeCompare(b.createdAt)); }
+function countReview(){
+  const list = pendingCounts(), K = S.stk;
+  if (!list.length) return '<div class="empty">Пересчётов на проверке нет. Когда ресторан пришлёт пересчёт, он появится здесь и придёт в Telegram.</div>';
+  if (!K.cnt || !list.some(c => c.id === K.cnt)) K.cnt = list[0].id;
+  const c = list.find(x => x.id === K.cnt);
+  if (K.cntLoaded !== c.id) { K.cntLoaded = c.id; K.cntVals = {}; K.cntNote = ''; c.lines.forEach(l => { K.cntVals[l.itemId] = String(l.qty).replace('.', ','); }); }
+  let html = '<div class="card-list" style="flex-direction:row;flex-wrap:wrap;gap:8px;margin-bottom:12px">' + list.map(x => '<div class="card' + (x.id === c.id ? ' sel' : '') + '" style="min-width:200px" onclick="App.cntPick(\'' + x.id + '\')"><div class="top"><span class="title">' + h(x.place) + '</span><span class="small muted">' + h(ru(x.date)) + '</span></div><div class="small muted">' + h(x.id) + ' · позиций: ' + x.lines.length + '</div></div>').join('') + '</div>';
+  html += '<dl class="kv"><dt>Место</dt><dd>' + h(c.place) + '</dd><dt>Посчитал</dt><dd>' + h(c.author) + ' · ' + h(ruDT(c.createdAt)) + '</dd>' + (c.comment ? '<dt>Комментарий</dt><dd>' + h(c.comment) + '</dd>' : '') + '</dl>';
+  html += '<div class="small muted" style="margin-bottom:6px">«По системе» — остаток в момент пересчёта. Поставки, принятые после, сохранятся. Цифру ресторана можно поправить.</div>';
+  html += '<div class="t-wrap"><table class="t"><thead><tr><th>Позиция</th><th class="num">По системе</th><th class="num" style="width:120px">Посчитано</th><th class="num">Разница</th></tr></thead><tbody>' +
+    c.lines.map(l => { const q = num(K.cntVals[l.itemId]), d = Math.round((q - l.was) * 1000) / 1000;
+      return '<tr><td>' + h(l.name) + ' <span class="muted small">' + h(l.unit) + '</span></td><td class="num">' + fmtN(l.was) + '</td>' +
+        '<td><input type="text" inputmode="decimal" style="text-align:right" value="' + h(K.cntVals[l.itemId]) + '" oninput="App.cntRevVal(\'' + l.itemId + '\', this.value)"></td>' +
+        '<td class="num ' + (d < 0 ? 'diff-down' : (d > 0 ? 'diff-up' : '')) + '" data-diff="' + l.itemId + '">' + (d > 0 ? '+' : '') + fmtN(d) + '</td></tr>'; }).join('') + '</tbody></table></div>';
+  html += '<div class="field" style="margin-top:10px"><label>Комментарий ресторану</label><input type="text" value="' + h(K.cntNote) + '" oninput="App.cntNote(this.value)"></div>' +
+    '<div class="actions"><button class="btn btn-primary" onclick="App.cntReview(\'approve\')">Утвердить — записать в остатки</button><button class="btn btn-secondary" onclick="App.cntReview(\'return\')">Вернуть ресторану</button></div>';
+  return html;
+}
+
+/* ---------- Остатки (закупки) ---------- */
+function stockOf(placeName, itemId){ const q = S.data.stock && S.data.stock.qty[placeName]; return q ? (q[itemId] || 0) : 0; }
+function pendingOf(placeName, itemId){ const q = S.data.stock && S.data.stock.pending[placeName]; return q ? (q[itemId] || 0) : 0; }
+function bunit(itemId){ const it = itemById(itemId) || {}; return (S.data.stock && S.data.stock.units[itemId]) || it.baseUnit || it.unit || ''; }
+// Короткая строка для проверки заявки: «Контейнер 700 шт (+300) · Дана 120»
+function stockHint(itemId, placeNames){
+  if (!S.data.stock || !itemId) return '';
+  const parts = uniq(placeNames.filter(Boolean)).map(p => {
+    const q = stockOf(p, itemId), pd = pendingOf(p, itemId);
+    return h(p) + ' ' + fmtN(q) + (pd ? ' <span style="color:var(--ok)">(+' + fmtN(pd) + ')</span>' : '');
+  });
+  return parts.length ? '<div class="small muted">остаток: ' + parts.join(' · ') + ' ' + h(bunit(itemId)) + '</div>' : '';
+}
+function toBase(vals, units){
+  const factor = id => { const it = itemById(id), u = it ? countUnits(it).find(x => x.name === units[id]) : null; return u ? u.amount : 1; };
+  return Object.keys(vals).filter(id => str(vals[id]) !== '').map(id => ({ itemId: id, qty: Math.round(num(vals[id]) * factor(id) * 1000) / 1000 }));
+}
+// Пересчитывать можно в любой фасовке: «3 рулона» → 3 × 500 шт в единице учёта
+function countUnits(i){
+  const u = [{ name: bunit(i.id), amount: 1 }];
+  (i.packs || []).forEach(p => { if (p.active !== false && p.amount && p.amount !== 1 && !u.some(x => x.name === p.name)) u.push({ name: p.name, amount: p.amount }); });
+  return u;
+}
+function countUnitSelect(i, units, act){
+  units = units || S.stk.units; act = act || 'stkUnit';
+  const u = countUnits(i), cur = units[i.id] || u[0].name;
+  if (u.length < 2) return '<span class="small muted">' + h(u[0].name) + '</span>';
+  return '<select onchange="App.' + act + '(\'' + i.id + '\', this.value)">' + u.map(x => '<option' + (x.name === cur ? ' selected' : '') + ' value="' + h(x.name) + '">' + h(x.name) + (x.amount !== 1 ? ' (' + fmtN(x.amount) + ' ' + h(u[0].name) + ')' : '') + '</option>').join('') + '</select>';
+}
+VIEWS.stock = function(){
+  const K = S.stk;
+  if (!S.data.stock) return '<div class="panel"><div class="empty">Остатки недоступны</div></div>';
+  const places = S.data.places.filter(p => p.type !== 'Поставщик' && p.active).map(p => p.name);
+  const items = S.data.items.filter(i => i.active && (!K.q || i.name.toLowerCase().indexOf(K.q.toLowerCase()) >= 0));
+  const cats = uniq(S.data.categories.concat(items.map(i => i.category)));
+  let html = '<div class="panel"><h2 class="panel-title">Остатки</h2>' +
+    '<div class="tabs" style="margin-bottom:12px">' + [['items','По позициям'],['count','Инвентаризация места'],['review','Пересчёты ресторанов' + (pendingCounts().length ? ' (' + pendingCounts().length + ')' : '')]].map(t => '<button class="tab-btn' + (K.mode === t[0] ? ' active' : '') + '" style="padding:6px 12px;font-size:0.8rem" onclick="App.stkMode(\'' + t[0] + '\')">' + t[1] + '</button>').join('') + '</div>';
+  if (K.mode === 'review') return html + countReview() + '</div>';
+  if (K.mode === 'count') {
+    html += '<div class="row"><div class="field" style="max-width:260px"><label>Место</label><select onchange="App.stkPlace(this.value)"><option value="">— выберите —</option>' + places.map(p => '<option' + (p === K.place ? ' selected' : '') + '>' + h(p) + '</option>').join('') + '</select></div>' +
+      '<div class="field"><label>Комментарий</label><input type="text" value="' + h(K.note) + '" oninput="App.stkNote(this.value)"></div></div>';
+    if (!K.place) return html + '<div class="empty">Выберите место — откроется список всех позиций с текущими остатками</div></div>';
+    html += '<div class="small muted" style="margin-bottom:6px">Впишите фактическое количество — в единице учёта или в фасовке (выбор справа: рулоны, банки и т.п.). Пустое поле — без изменений. В «Движение остатков» запишется разница «было → стало».</div>';
+    cats.forEach(cat => {
+      const list = items.filter(i => i.category === cat);
+      if (!list.length) return;
+      html += '<h3 class="sec">' + h(cat) + '</h3><table class="t"><tbody>' + list.map(i => '<tr><td>' + h(i.name) + '</td><td class="num muted" style="width:140px">сейчас ' + fmtN(stockOf(K.place, i.id)) + ' ' + h(bunit(i.id)) + '</td>' +
+        '<td style="width:130px"><input type="text" inputmode="decimal" style="text-align:right" value="' + h(K.vals[i.id] === undefined ? '' : K.vals[i.id]) + '" oninput="App.stkVal(\'' + i.id + '\', this.value)"></td>' +
+        '<td style="width:170px">' + countUnitSelect(i) + '</td></tr>').join('') + '</tbody></table>';
+    });
+    return html + '<div class="actions"><button class="btn btn-primary" onclick="App.stkSaveCount()">Сохранить инвентаризацию</button></div></div>';
+  }
+  html += '<div class="field" style="max-width:360px"><label>Поиск</label><input type="text" id="stk-q" value="' + h(K.q) + '" oninput="App.stkQ(this.value)"></div>';
+  html += '<div class="small muted" style="margin-bottom:6px">Зелёным — ожидается: утверждено, но ещё не принято. Нажмите на позицию, чтобы поправить остаток по местам.</div>';
+  cats.forEach(cat => {
+    const list = items.filter(i => i.category === cat);
+    if (!list.length) return;
+    html += '<h3 class="sec">' + h(cat) + '</h3><table class="t"><tbody>';
+    list.forEach(i => {
+      const tot = places.reduce((a, p) => a + stockOf(p, i.id), 0), pend = places.reduce((a, p) => a + pendingOf(p, i.id), 0);
+      const open = K.open === i.id;
+      html += '<tr class="click' + (open ? ' sel' : '') + '" onclick="App.stkOpen(\'' + i.id + '\')"><td><b>' + h(i.name) + '</b></td><td class="num" style="width:160px"><b>' + fmtN(tot) + '</b> ' + h(bunit(i.id)) +
+        (pend ? ' <span class="small" style="color:var(--ok)">+' + fmtN(pend) + '</span>' : '') + '</td></tr>';
+      if (open) {
+        places.forEach(p => {
+          const q = stockOf(p, i.id), pd = pendingOf(p, i.id);
+          html += '<tr><td style="padding-left:22px">' + h(p) + (pd ? ' <span class="small" style="color:var(--ok)">ожидается +' + fmtN(pd) + '</span>' : '') + '</td>' +
+            '<td><input type="text" inputmode="decimal" style="text-align:right" value="' + h(K.vals[p] === undefined ? fmtN(q).replace(/\s/g, '') : K.vals[p]) + '" oninput="App.stkVal(\'' + h(p) + '\', this.value)"></td></tr>';
+        });
+        html += '<tr><td colspan="2"><div class="actions" style="margin:4px 0"><button class="btn btn-primary btn-sm" onclick="App.stkSaveItem(\'' + i.id + '\')">Сохранить остатки</button><button class="btn btn-secondary btn-sm" onclick="App.stkOpen(\'\')">Свернуть</button></div></td></tr>';
+      }
+    });
+    html += '</tbody></table>';
+  });
+  return html + '</div>';
+};
 
 /* ---------- Поставки (закупки): единица работы — источник + дата ---------- */
 const ACTIVE_ST = ['Отправлена','На проверке','Возвращена'];
@@ -758,7 +948,9 @@ function supplyView(s){
     const totReq = g.rows.reduce((a, x) => a + (x.l.requested || 0), 0);
     const totAp = g.rows.reduce((a, x) => a + num(E.lines[x.l.lineId].approved), 0);
     const dis = editable.length ? '' : ' disabled';
-    html += '<tr style="background:var(--hover)"><td><b>' + h(g.name) + '</b>' + (!g.itemId ? ' <span class="chip st-Возвращена">нет в справочнике</span>' : '') + '</td>' +
+    const srcP = place(e0.from);
+    html += '<tr style="background:var(--hover)"><td><b>' + h(g.name) + '</b>' + (!g.itemId ? ' <span class="chip st-Возвращена">нет в справочнике</span>' : '') +
+      stockHint(g.itemId, [srcP && srcP.type !== 'Поставщик' ? e0.from : ''].concat(g.rows.map(x => x.r.place))) + '</td>' +
       '<td class="num"><b>' + fmtN(totReq) + '</b></td>' +
       '<td>' + packSelect(it, e0.pack || g.unit, 'App.supItem(\'' + h(k) + '\',\'pack\',this.value)', dis) + '</td>' +
       '<td class="num"><b data-tot="' + h(k) + '">' + fmtN(totAp) + '</b></td>' +
@@ -842,7 +1034,8 @@ function editor(r){
     const over = us !== null && l.requested >= us * (S.data.settings.overuse || 1.5) && l.requested - us >= ((it || {}).mult || 1);
     html += '<tr><td>' + h(l.name) + (!l.itemId ? ' <span class="chip st-Возвращена">нет в справочнике</span>' : '') +
       (over ? ' <span class="chip late" title="Среднее по утверждённым заявкам этого ресторана за 6 недель">больше обычного: обычно ~' + fmtN(us) + '</span>' : '') +
-      (l.invoice ? '<div class="small muted">' + h(l.invoice) + '</div>' : '') + '</td>' +
+      (l.invoice ? '<div class="small muted">' + h(l.invoice) + '</div>' : '') +
+      stockHint(l.itemId, [place(e.from) && place(e.from).type !== 'Поставщик' ? e.from : '', r.place]) + '</td>' +
       '<td class="num">' + (l.requested === null ? '—' : fmtN(l.requested)) + '</td>' +
       '<td>' + packSelect(it, e.pack || l.unit, 'App.edPack(\'' + l.lineId + '\', this.value)', dis) + '</td>' +
       '<td><input type="text" inputmode="decimal" style="text-align:right" value="' + h(e.approved) + '"' + disQ + ' oninput="App.ed(\'' + l.lineId + '\',\'approved\',this.value)"></td>' +
@@ -872,12 +1065,14 @@ function editor(r){
   } else if (r.purchaseComment) {
     html += '<div class="msg warn">Комментарий закупок: ' + h(r.purchaseComment) + '</div>';
   }
+  if (['Получена','Получена с расхождением'].indexOf(r.status) >= 0) html += '<div class="msg ' + (r.status === 'Получена' ? 'ok' : 'warn') + '">' + h(r.status) + '. Расхождения — в колонке «Получено» в заявке ресторана; поправить остатки можно во вкладке «Остатки».</div>';
   if (approved) {
     const invs = S.data.invoices.filter(i => i.basis === r.id);
     html += '<div class="small muted" style="margin-top:6px">Не хватило? Поправьте количество и нажмите «Сохранить корректировку»: номера накладных сохранятся, ресторан получит уведомление. Сменить «откуда» или фасовку — через «Вернуть в работу».</div>';
     html += '<div class="actions"><button class="btn btn-primary" onclick="App.adjust()">Сохранить корректировку</button>' +
       (invs.length ? '<button class="btn btn-secondary" onclick="App.print(' + h(JSON.stringify(invs.map(i => i.no))) + ')">Печать накладных (' + invs.length + ')</button>' : '') +
-      '<button class="btn btn-secondary" onclick="App.reopen()">Вернуть в работу</button></div>';
+      '<button class="btn btn-secondary" onclick="App.reopen()">Вернуть в работу</button>' +
+      (place(r.place) && place(r.place).type !== 'Ресторан' ? '<button class="btn btn-secondary" onclick="App.accept(\'' + r.id + '\')">Принять на ' + h(r.place) + '</button>' : '') + '</div>';
   }
   html += '</div>';
   return html;
@@ -1190,6 +1385,13 @@ VIEWS.movements = function(){
   const invCount = {}; uniq(list.map(m => m.no)).forEach(no => { const m = list.find(x => x.no === no); invCount[m.to] = (invCount[m.to] || 0) + 1; });
   html += '</tbody><tfoot><tr><td>Накладных</td>' + dsts.map(d => '<td class="num">' + (invCount[d] || 0) + '</td>').join('') + '<td class="num">' + uniq(list.map(m => m.no)).length + '</td></tr></tfoot></table></div>';
 
+  const C = consumption();
+  if (C.rows.length) {
+    html += '<h3 class="sec">Расход по инвентаризации</h3><div class="small muted" style="margin-bottom:6px">Сколько израсходовано по пересчётам за период (было − стало). Минус — излишек.</div><div class="t-wrap"><table class="t"><thead><tr><th>Позиция</th>' +
+      C.places.map(d => '<th class="num">' + h(d) + '</th>').join('') + '<th class="num">Итого</th></tr></thead><tbody>' +
+      C.rows.map(r => { let t = 0; return '<tr><td>' + h(r.name) + ' <span class="muted small">' + h(r.unit) + '</span></td>' + C.places.map(d => { const v = r.by[d] || 0; t += v; return '<td class="num">' + (v ? fmtN(v) : '<span class="muted">·</span>') + '</td>'; }).join('') + '<td class="num"><b>' + fmtN(t) + '</b></td></tr>'; }).join('') +
+      '</tbody></table></div>';
+  }
   html += '<h3 class="sec">Все строки (' + list.length + ')</h3><div class="t-wrap"><table class="t"><thead><tr><th>Дата</th><th>№</th><th>Откуда</th><th>Куда</th><th>Позиция</th><th class="num">Кол-во</th><th>Ед.</th></tr></thead><tbody>' +
     list.map(m => '<tr><td>' + h(ru(m.date)) + '</td><td>' + h(m.no) + '</td><td>' + h(m.from) + '</td><td>' + h(m.to) + '</td><td>' + h(m.name) + '</td><td class="num">' + fmtN(m.qty) + '</td><td>' + h(m.unit) + '</td></tr>').join('') +
     '</tbody></table></div></div>';
@@ -1365,6 +1567,15 @@ function previewInvoices(nos){
 }
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && $('#preview-root').innerHTML) App.pvClose(); });
 
+// Расход по инвентаризации: у ресторана остаток растёт при приёмке и уменьшается только инвентаризацией,
+// поэтому «было − стало» за период = фактический расход.
+function consumption(){
+  const F = S.mov, L = (S.data.ledger || []).filter(x => x.type === 'Инвентаризация' && (place(x.place) || {}).type === 'Ресторан' && x.date >= F.from && x.date <= F.to && (!F.dst || x.place === F.dst) &&
+    (!F.q || x.name.toLowerCase().indexOf(F.q.toLowerCase()) >= 0));
+  const places = uniq(L.map(x => x.place)).sort(), piv = {};
+  L.forEach(x => { const k = x.itemId || x.name; const r = piv[k] = piv[k] || { name: x.name, unit: x.unit, by: {} }; r.by[x.place] = (r.by[x.place] || 0) - x.delta; });
+  return { places, rows: Object.values(piv).sort((a,b) => a.name.localeCompare(b.name)) };
+}
 /* ============================== EXCEL ============================== */
 function exportExcel(){
   if (!window.XLSX) { S.msg = { kind: 'err', text: 'Библиотека Excel ещё не загрузилась, попробуйте через пару секунд' }; return render(); }
@@ -1377,6 +1588,9 @@ function exportExcel(){
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'Перемещения');
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(pivRows, { header: ['Позиция','Ед. изм.'].concat(dsts, ['Итого']) }), 'Свод по ресторанам');
+  const C = consumption();
+  if (C.rows.length) XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(C.rows.map(r => { const o = { 'Позиция': r.name, 'Ед. учёта': r.unit }; let t = 0; C.places.forEach(d => { o[d] = r.by[d] || 0; t += o[d]; }); o['Итого'] = t; return o; }),
+    { header: ['Позиция','Ед. учёта'].concat(C.places, ['Итого']) }), 'Расход по инвентаризации');
   XLSX.writeFile(wb, 'Перемещения_' + S.mov.from + '_' + S.mov.to + '.xlsx');
 }
 
@@ -1452,7 +1666,66 @@ window.App = {
     const r = S.data.requests.find(x => x.id === id);
     run(async () => { await api('deleteDraft', { id: id, updatedAt: r.updatedAt }); S.mineSel = null; await reload(); }, 'Заявка удалена');
   },
-  mineSel(id){ S.mineSel = id; S.msg = null; render(); showDetail(); },
+  mineSel(id){ S.mineSel = id; S.acc = null; S.msg = null; render(); showDetail(); },
+  accStart(id){ const r = S.data.requests.find(x => x.id === id); const A = { id: id, lines: {} }; linesOf(id).forEach(l => { const a = l.approved === null ? l.requested : l.approved; if (a) A.lines[l.lineId] = String(a); }); S.acc = A; render(); },
+  accStartTr(no){ const A = { id: 'inv:' + no, lines: {} }; movOf(no).forEach(m => { A.lines[m.itemId || m.name] = String(m.qty); }); S.acc = A; render(); },
+  accLine(k, v){ S.acc.lines[k] = v; },
+  accCancel(){ S.acc = null; render(); },
+  accept(id, withEdits){
+    const r = S.data.requests.find(x => x.id === id);
+    const lines = withEdits && S.acc ? Object.keys(S.acc.lines).map(k => ({ lineId: k, received: num(S.acc.lines[k]) })) : [];
+    if (!withEdits && !confirm('Всё пришло как в заявке?')) return;
+    run(async () => { const res = await api('acceptRequest', { id: id, updatedAt: r.updatedAt, lines: lines }); S.acc = null; await reload(); return res; },
+      res => res.diffs ? 'Принято с расхождением (' + res.diffs + ' поз.). Тане отправлено уведомление' : 'Принято, остатки обновлены');
+  },
+  acceptTr(no, withEdits){
+    const lines = withEdits && S.acc ? Object.keys(S.acc.lines).map(k => ({ key: k, received: num(S.acc.lines[k]) })) : [];
+    if (!withEdits && !confirm('Всё пришло как в накладной?')) return;
+    run(async () => { const res = await api('acceptTransfer', { no: no, lines: lines }); S.acc = null; S.mineSel = null; await reload(); return res; },
+      res => res.diffs ? 'Принято с расхождением (' + res.diffs + ' поз.)' : 'Перемещение принято');
+  },
+  // остатки
+  stkMode(m){ S.stk.mode = m; S.stk.vals = {}; render(); },
+  stkQ(v){ S.stk.q = v; keepFocus(render); },
+  stkOpen(id){ S.stk.open = S.stk.open === id ? '' : id; S.stk.vals = {}; render(); },
+  stkVal(k, v){ S.stk.vals[k] = v; },
+  stkPlace(p){ S.stk.place = p; S.stk.vals = {}; render(); },
+  stkNote(v){ S.stk.note = v; },
+  stkUnit(id, v){ S.stk.units[id] = v; },
+  // пересчёт ресторана
+  cntQ(v){ S.cnt.q = v; keepFocus(render); },
+  cntComment(v){ S.cnt.comment = v; },
+  cntVal(id, v){ S.cnt.vals[id] = v; },
+  cntUnit(id, v){ S.cnt.units[id] = v; },
+  cntSend(){
+    const items = toBase(S.cnt.vals, S.cnt.units);
+    if (!items.length) { S.msg = { kind: 'warn', text: 'Не вписано ни одной позиции' }; render(); return window.scrollTo({ top: 0, behavior: 'smooth' }); }
+    if (!confirm('Отправить пересчёт закупкам? Позиций: ' + items.length)) return;
+    run(async () => { const r = await api('saveCount', { items: items, comment: S.cnt.comment }); S.cnt.loaded = ''; await reload(); return r; }, r => 'Пересчёт ' + r.id + ' отправлен закупкам (' + r.count + ' поз.). В остатки попадёт после проверки');
+  },
+  // проверка пересчёта закупками
+  cntPick(id){ S.stk.cnt = id; render(); },
+  cntRevVal(id, v){ S.stk.cntVals[id] = v; const c = pendingCounts().find(x => x.id === S.stk.cnt), l = c && c.lines.find(x => x.itemId === id), td = document.querySelector('[data-diff="' + id + '"]');
+    if (l && td) { const d = Math.round((num(v) - l.was) * 1000) / 1000; td.textContent = (d > 0 ? '+' : '') + fmtN(d); td.className = 'num ' + (d < 0 ? 'diff-down' : (d > 0 ? 'diff-up' : '')); } },
+  cntNote(v){ S.stk.cntNote = v; },
+  cntReview(decision){
+    const K = S.stk, id = K.cnt;
+    if (decision === 'return' && !str(K.cntNote)) { S.msg = { kind: 'warn', text: 'Напишите ресторану, что исправить' }; render(); return window.scrollTo({ top: 0, behavior: 'smooth' }); }
+    const lines = Object.keys(K.cntVals).map(k => ({ itemId: k, qty: num(K.cntVals[k]) }));
+    run(async () => { const r = await api('reviewCount', { id: id, decision: decision, lines: lines, comment: K.cntNote }); K.cntLoaded = ''; await reload(); return r; },
+      r => r.status === 'Утверждён' ? 'Пересчёт ' + id + ' утверждён, остатки обновлены (' + r.changed + ' изм.)' : 'Пересчёт ' + id + ' возвращён ресторану');
+  },
+  stkSaveItem(itemId){
+    const entries = Object.keys(S.stk.vals).filter(p => str(S.stk.vals[p]) !== '').map(p => ({ place: p, itemId: itemId, qty: num(S.stk.vals[p]) }));
+    if (!entries.length) { S.msg = { kind: 'warn', text: 'Изменений нет' }; render(); return window.scrollTo({ top: 0, behavior: 'smooth' }); }
+    run(async () => { const r = await api('setStock', { entries: entries }); S.stk.vals = {}; await reload(); return r; }, r => r.changed ? 'Остатки сохранены (' + r.changed + ')' : 'Изменений нет');
+  },
+  stkSaveCount(){
+    const K = S.stk;
+    const items = toBase(K.vals, K.units);
+    if (!items.length) { S.msg = { kind: 'warn', text: 'Ничего не вписано' }; render(); return window.scrollTo({ top: 0, behavior: 'smooth' }); }
+    run(async () => { const r = await api('setStock', { place: K.place, items: items, note: K.note }); K.vals = {}; await reload(); return r; }, r => 'Инвентаризация «' + K.place + '» сохранена: изменено ' + r.changed + ' поз.');
+  },
 
   // закупки
   inbox(k, v){ S.inbox[k] = v; render(); },
