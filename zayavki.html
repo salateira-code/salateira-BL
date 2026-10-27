@@ -1,7 +1,9 @@
 <!--
   Salateira · Заявки на расходники (zayavki.html)
-  Версия 3.0
+  Версия 3.1
 
+  3.1 — «Утвердить поставку» сохраняется в фоне; меню и подсказки закрываются кликом мимо и по Esc;
+        исправлены подсказка, галочка в списке сборки, подписи в пересчёте. Нужен Code.gs ≥ 2.8.0.
   3.0 — новый интерфейс: разделы (сверху, на телефоне снизу) и подразделы, крупные заголовки и
         понятная иерархия, кнопки сохранения закреплены снизу, пояснения спрятаны под «?», тексты без
         стрелок и разделителей. Заказ: категории для быстрого перехода, «Часто заказываете». Таня:
@@ -164,6 +166,7 @@
   details.hint{ display:inline-block; position:relative; }
   details.hint summary{ list-style:none; cursor:pointer; width:22px; height:22px; border-radius:50%; border:1.5px solid var(--line); color:var(--muted); font-size:0.78rem; font-weight:800; display:flex; align-items:center; justify-content:center; }
   details.hint summary::-webkit-details-marker{ display:none; }
+  details.hint .hint-body b{ color:#fff; font-weight:800; }
   details.hint[open] summary{ border-color:var(--accent); color:var(--accent); }
   details.hint .hint-body{ position:absolute; z-index:35; left:0; top:28px; width:min(360px, 80vw); background:var(--ink); color:#fff; font-size:0.84rem; font-weight:500; line-height:1.5; padding:12px 14px; border-radius:10px; box-shadow:0 10px 30px rgba(23,18,43,0.25); }
 
@@ -190,7 +193,7 @@
   details.past .inner{ opacity:0.55; }
   .ptask h2{ font-size:15pt; text-align:left; margin:0 0 4px; }
   .ptask h3{ font-size:12pt; margin:14px 0 4px; }
-  .ptask td.chk{ width:16mm; }
+  .ptask th.tick, .ptask td.tick{ width:14mm; text-align:center; }
   textarea{ resize:vertical; min-height:60px; }
   .row{ display:flex; gap:10px; flex-wrap:wrap; align-items:flex-end; }
   .row > .field{ flex:1 1 160px; }
@@ -332,7 +335,7 @@
 'use strict';
 
 const API = 'https://script.google.com/macros/s/AKfycbyFzdhhkVtxq8RWyaUzDBZAqe_M7sLbNgYOVMuly4HHmqLzse5b-5yhAE72PjWscjcF/exec';
-const VERSION = '3.0';
+const VERSION = '3.1';
 const LOGO = '<svg class="logo-mark" viewBox="0 0 1059 188" xmlns="http://www.w3.org/2000/svg" aria-label="Salateira"><path d="M611.586 107.247C617.466 33.8785 734.55 28.51 738.384 107.247C738.384 120.54 732.509 125.577 714.354 126.676H646.098C646.098 153.262 666.549 172.691 697.226 159.397C706.94 153.773 712.564 146.301 717.677 143.037C729.692 135.368 742.162 148.332 734.805 159.397C703.361 206.691 601.105 195.699 611.586 107.247ZM551.401 2.06641C560.578 2.06654 568.017 9.50577 568.017 18.6826V53.4678H583.643C590.138 53.4679 595.403 58.733 595.403 65.2275C595.403 71.722 590.138 76.9872 583.643 76.9873H568.017V149.798C569.105 157.145 571.859 158.706 574.615 159.854C577.938 160.877 582.796 161.464 593.277 158.064C603.758 154.666 616.028 172.892 595.322 182.351C574.615 191.809 533.713 188.997 534.735 153.463L534.804 153.449C534.791 153.181 534.785 152.91 534.785 152.639V76.9873H526.379C519.885 76.9873 514.62 71.7221 514.62 65.2275C514.62 58.733 519.885 53.4678 526.379 53.4678H534.785V18.6826C534.785 9.50569 542.224 2.06641 551.401 2.06641ZM783.589 50.1328C792.766 50.133 800.205 57.5722 800.206 66.749V170.028C800.205 179.205 792.766 186.644 783.589 186.645C774.412 186.645 766.973 179.205 766.973 170.028V66.749C766.973 57.5721 774.412 50.1328 783.589 50.1328ZM850.588 50.1328C859.765 50.1328 867.204 57.5721 867.205 66.749V68.8203C878.771 46.6922 897.178 47.8161 912.415 54.3105C937.723 64.0246 922.128 88.4264 907.045 82.9424C877.779 72.3012 869.743 84.3673 867.205 129.686V170.028C867.204 179.205 859.765 186.645 850.588 186.645C841.412 186.644 833.972 179.205 833.972 170.028V66.749C833.972 57.5722 841.412 50.133 850.588 50.1328ZM336.192 0C345.369 4.01144e-07 352.808 7.4391 352.808 16.6162V170.001C352.808 179.178 345.369 186.617 336.192 186.617C327.015 186.617 319.576 179.178 319.576 170.001V16.6162C319.576 7.4392 327.015 0.000164922 336.192 0ZM172.831 73.6973C186.635 44.8099 284.545 34.5843 284.545 88.5244L286.335 150.134C288.015 158.223 291.666 165.459 291.666 171.097C291.665 188.48 268.44 195.127 255.147 167.518C233.929 182.089 218.846 190.526 190.214 183.879C155.192 171.608 152.38 126.103 190.214 113.321L252.846 99.0059C252.846 62.705 206.065 70.8853 197.628 88.5244C187.358 109.998 160.211 100.105 172.831 73.6973ZM388.629 73.6973C402.434 44.8099 500.344 34.5843 500.344 88.5244L502.134 150.134C503.814 158.223 507.464 165.459 507.464 171.097C507.464 188.48 484.239 195.127 470.946 167.518C449.728 182.089 434.645 190.526 406.013 183.879C370.99 171.608 368.178 126.103 406.013 113.321L468.645 99.0059C468.645 62.705 421.864 70.8853 413.427 88.5244C403.157 109.998 376.01 100.105 388.629 73.6973ZM3.59721 46.8545C3.59721 -7.59644 117.868 -19.6115 134.485 38.9297C139.086 59.8927 110.551 74.4792 101.252 46.8545C92.5596 21.0354 44.7549 17.712 37.3413 46.8545C35.8076 73.186 92.3796 73.4214 112.755 83.4121C152.38 102.841 151.869 151.923 117.869 174.675C85.1468 194.615 9.98783 191.037 0.528848 140.42C-4.1049 115.623 23.0256 107.953 30.6949 128.148C44.7548 159.337 70.0459 163.419 90.771 154.99C108.893 147.62 112.5 117.978 90.771 111.531C35.2011 95.0457 3.59722 93.6373 3.59721 46.8545ZM939.535 73.4414C953.339 44.5541 1051.25 34.3286 1051.25 88.2686L1053.04 149.878C1054.72 157.967 1058.37 165.203 1058.37 170.841C1058.37 188.224 1035.15 194.871 1021.85 167.262C1000.63 181.833 985.55 190.27 956.918 183.623C921.896 171.352 919.084 125.849 956.918 113.066L1019.55 98.75C1019.55 62.4493 972.769 70.6295 964.333 88.2686C954.062 109.742 926.915 99.8493 939.535 73.4414ZM252.846 119.201C232.395 126.615 213.733 128.532 207.086 131.472C193.793 137.351 194.56 154.991 207.086 161.638C223.703 169.051 250.801 157.548 252.846 134.54V119.201ZM468.645 119.201C448.194 126.615 429.532 128.532 422.885 131.472C409.592 137.351 410.359 154.991 422.885 161.638C439.502 169.051 466.6 157.548 468.645 134.54V119.201ZM1019.55 118.945C999.099 126.359 980.438 128.277 973.792 131.217C960.498 137.097 961.265 154.735 973.792 161.382C990.408 168.795 1017.51 157.292 1019.55 134.284V118.945ZM676.775 73.7578C658.369 73.7578 649.166 85.2621 646.098 107.247H706.173C704.128 87.0516 695.692 73.7578 676.775 73.7578ZM783.594 2.06641C792.771 2.06644 800.211 9.50571 800.211 18.6826C800.211 27.8597 792.771 35.2988 783.594 35.2988H783.055C773.878 35.2988 766.439 27.8597 766.439 18.6826C766.439 9.50569 773.878 2.06641 783.055 2.06641H783.594Z" fill="#7002FF"/></svg>';
 const TOKEN_KEY = 'slt_zayavki_token';
 const WD = ['вс','пн','вт','ср','чт','пт','сб'];
@@ -551,6 +554,17 @@ function secOf(tab){ return sections().find(s => s.subs.some(x => x.id === tab))
 /* ============================== ОТРИСОВКА ============================== */
 // Пока кнопка нажата, перерисовку откладываем: иначе после правки поля (change) кнопка
 // заменяется под курсором и клик теряется.
+// Меню «⋯» и подсказки «?» закрываются кликом мимо, по Esc и после выбора пункта
+document.addEventListener('click', e => {
+  document.querySelectorAll('details.menu[open], details.hint[open]').forEach(d => {
+    if (!d.contains(e.target) || (d.classList.contains('menu') && e.target.closest('.menu-body button'))) d.removeAttribute('open');
+  });
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('details.menu[open], details.hint[open]').forEach(d => d.removeAttribute('open')); });
+document.addEventListener('toggle', e => {   // открыто только одно
+  const t = e.target; if (!t.open || !t.matches || !t.matches('details.menu, details.hint')) return;
+  document.querySelectorAll('details.menu[open], details.hint[open]').forEach(d => { if (d !== t) d.removeAttribute('open'); });
+}, true);
 let holdRender = false, renderPending = false;
 document.addEventListener('pointerdown', e => { if (e.target.closest && e.target.closest('button, .btn, .card, .dt, tr.click')) holdRender = true; }, true);
 window.addEventListener('pointerup', () => setTimeout(() => { holdRender = false; if (renderPending) { renderPending = false; render(); } }, 0), true);
@@ -563,7 +577,7 @@ function render(){
   const timing = S.timing && isSuper() ? '<span title="Последняя загрузка. Скрипт Google ' + fmtN((S.timing.server || 0) / 1000) + ' с, вместе с интернетом ' + fmtN(S.timing.total / 1000) + ' с">' + fmtN(Math.round(S.timing.total / 100) / 10) + ' с</span>' : '';
   let html =
     '<header class="top">' + LOGO + '<nav class="nav">' + navBtns + '</nav>' +
-    '<div class="who">' + (S.syncing ? '<span>Обновляем данные</span>' : timing) +
+    '<div class="who">' + (S.bg > 0 ? '<span><span class="spinner"></span> Сохраняем</span>' : S.syncing ? '<span>Обновляем данные</span>' : timing) +
     '<span class="nm"><b>' + h(u.place || u.name) + '</b></span>' +
     '<button class="link-btn" onclick="App.refresh()">Обновить</button><button class="link-btn" onclick="App.logout()">Выйти</button></div></header>';
   if (cur && cur.subs.length > 1) html += '<div class="subnav">' + cur.subs.map(x => '<button class="sub-btn' + (x.id === S.tab ? ' active' : '') + '" onclick="App.tab(\'' + x.id + '\')">' + h(x.title) + (x.cnt ? '<span class="cnt">' + x.cnt + '</span>' : '') + '</button>').join('') + '</div>';
@@ -848,8 +862,7 @@ VIEWS.count = function(){
   let html = '<div class="panel">' + title('Пересчёт остатков', 'Посчитайте, сколько есть на месте, и впишите. Количество можно указать в единице учёта (шт, кг, л) или в упаковках: выберите справа. Пустое поле значит, что позицию не считали. В остатки пересчёт попадёт после проверки закупками.', open ? chip(open.status) : '');
   if (open && open.status === 'На проверке') html += '<div class="msg info">Пересчёт от ' + h(ru(open.date)) + ' у закупок на проверке. Пока его не проверили, можно исправить и отправить снова.</div>';
   if (open && open.status === 'Возвращён') html += '<div class="msg warn">Закупки вернули пересчёт' + (open.purchaseComment ? ': ' + h(open.purchaseComment) : '') + '. Исправьте и отправьте снова.</div>';
-  html += '<div class="row"><div class="field" style="max-width:320px"><label>Поиск</label><input type="text" id="cnt-q" value="' + h(K.q) + '" placeholder="Найти позицию" oninput="App.cntQ(this.value)"></div>' +
-    '<div class="field"><label>Комментарий</label><input type="text" value="' + h(K.comment) + '" oninput="App.cntComment(this.value)"></div></div>';
+  html += '<div class="field" style="max-width:360px"><input type="text" id="cnt-q" value="' + h(K.q) + '" placeholder="Найти позицию" aria-label="Поиск" oninput="App.cntQ(this.value)"></div>';
   cats.forEach(cat => {
     const list = items.filter(i => i.category === cat);
     if (!list.length) return;
@@ -857,6 +870,7 @@ VIEWS.count = function(){
       '<td style="width:120px"><input type="text" inputmode="decimal" style="text-align:right" value="' + h(K.vals[i.id] === undefined ? '' : K.vals[i.id]) + '" oninput="App.cntVal(\'' + i.id + '\', this.value)"></td>' +
       '<td style="width:190px">' + countUnitSelect(i, K.units, 'cntUnit') + '</td></tr>').join('') + '</tbody></table>';
   });
+  html += '<h3 class="sec">Примечание для закупок</h3><input type="text" value="' + h(K.comment) + '" placeholder="Необязательно. Например: две упаковки салфеток испорчены, списали" oninput="App.cntComment(this.value)">';
   const done = (S.data.counts || []).filter(c => c.status === 'Утверждён').sort((a,b) => b.date.localeCompare(a.date)).slice(0, 6);
   if (done.length) html += '<h3 class="sec">Прошлые пересчёты</h3><table class="t"><tbody>' + done.map(c => '<tr><td>' + h(ru(c.date)) + '</td><td>' + plural(c.lines.length, 'позиция', 'позиции', 'позиций') + '</td><td class="muted">Проверил ' + h(c.reviewedBy || '') + '</td></tr>').join('') + '</tbody></table>';
   const filled = Object.keys(K.vals).filter(id => str(K.vals[id]) !== '').length;
@@ -994,7 +1008,7 @@ VIEWS.stock = function(){
     '<div class="subnav" style="margin:0 0 0 auto">' + [['items','По позициям'],['count','Пересчитать место']].map(t => '<button class="sub-btn' + (K.mode === t[0] ? ' active' : '') + '" onclick="App.stkMode(\'' + t[0] + '\')">' + t[1] + '</button>').join('') + '</div>');
   if (K.mode === 'count') {
     html += '<div class="row"><div class="field" style="max-width:260px"><label>Место</label><select onchange="App.stkPlace(this.value)"><option value="">Выберите</option>' + places.map(p => '<option' + (p === K.place ? ' selected' : '') + '>' + h(p) + '</option>').join('') + '</select></div>' +
-      '<div class="field"><label>Комментарий</label><input type="text" value="' + h(K.note) + '" oninput="App.stkNote(this.value)"></div></div>';
+      '<div class="field"><label>Примечание в журнал остатков</label><input type="text" value="' + h(K.note) + '" placeholder="Необязательно. Например: пересчёт на конец месяца" oninput="App.stkNote(this.value)"></div></div>';
     if (!K.place) return html + '<div class="empty">Выберите место, чтобы открыть список позиций</div></div>';
     const rest = (place(K.place) || {}).type === 'Ресторан';
     cats.forEach(cat => {
@@ -1456,8 +1470,8 @@ function printTasks(date){
   const me = S.data.user.place || S.data.user.name;
   $('#print-root').innerHTML = '<div class="inv ptask"><div class="org">' + h(S.data.settings.org || '') + '</div>' +
     '<h2>Сборка на ' + h(ru(date)) + '</h2><div>Собирает: <b>' + h(me) + '</b></div>' +
-    Object.keys(byTo).sort().map(to => '<h3>' + h(to) + '</h3><table><thead><tr><th style="width:50%">Наименование</th><th>Количество</th><th>Кол-во в ед. учёта</th><th class="chk">✓</th></tr></thead><tbody>' +
-      byTo[to].map(t => '<tr><td>' + h(t.name) + '</td><td class="c">' + h(fmtN(t.qty)) + ' ' + h(t.unit) + '</td><td class="c">' + h(baseQty(t.itemId, t.unit, t.qty)) + '</td><td></td></tr>').join('') + '</tbody></table>').join('') +
+    Object.keys(byTo).sort().map(to => '<h3>' + h(to) + '</h3><table><thead><tr><th style="width:50%">Наименование</th><th>Количество</th><th>Кол-во в ед. учёта</th><th class="tick">✓</th></tr></thead><tbody>' +
+      byTo[to].map(t => '<tr><td>' + h(t.name) + '</td><td class="c">' + h(fmtN(t.qty)) + ' ' + h(t.unit) + '</td><td class="c">' + h(baseQty(t.itemId, t.unit, t.qty)) + '</td><td class="tick"></td></tr>').join('') + '</tbody></table>').join('') +
     '<div class="sign"><b>Собрал</b> _______________________________</div></div>';
   setTimeout(() => { window.print(); }, 50);
 }
@@ -1514,7 +1528,7 @@ VIEWS.invoices = function(){
   });
   html += '</tbody></table></div>';
   html += savebar(checked.length ? 'Выбрано: <b>' + plural(checked.length, 'накладная', 'накладные', 'накладных') + '</b>' : 'В списке ' + plural(list.length, 'накладная', 'накладные', 'накладных'),
-    '<button class="btn btn-secondary" onclick="App.preview(' + sel + ')">Просмотреть</button><button class="btn btn-primary" onclick="App.print(' + sel + ')">Печать</button>');
+    '<button class="btn btn-secondary" onclick="App.preview(' + sel + ')">' + (checked.length ? 'Просмотреть выбранные' : 'Просмотреть все') + '</button><button class="btn btn-primary" onclick="App.print(' + sel + ')">' + (checked.length ? 'Печать выбранных' : 'Печать всех') + '</button>');
   return html + '</div>';
 };
 
@@ -1975,12 +1989,21 @@ window.App = {
       versions[r.id] = r.updatedAt;
       linesOf(r.id).forEach(l => { const e = E.lines[l.lineId]; lines.push({ lineId: l.lineId, approved: e.approved, comment: e.comment, pack: e.pack, from: e.from }); });
     });
-    run(async () => { const res = await api('saveSupply', { lines: lines, versions: versions, approve: approve }); S.sup = null; await reload(); return res; }, res => {
-      const ok = res.results.filter(x => x.ok), bad = res.results.filter(x => !x.ok);
-      if (bad.length) S.msgKind = 'warn';
-      return (approve ? 'Поставка утверждена' : 'Изменения сохранены') + (ok.length ? ': ' + ok.map(x => x.place).join(', ') : '') +
-        (bad.length ? '\nНе прошли: ' + bad.map(x => x.place + ': ' + x.error).join('; ') : '');
+    // Сохраняем в фоне: сразу показываем результат, Таня работает дальше, ответ сервера догоняет.
+    const label = srcLabel(s.source) + ', ' + ruDay(s.date);
+    Object.keys(versions).forEach(id => {
+      const r = S.data.requests.find(x => x.id === id);
+      if (r) { r.status = approve ? 'Утверждена' : 'На проверке'; r.updatedAt = r.updatedAt + '~'; }
+      linesOf(id).forEach(l => { const e = E.lines[l.lineId]; if (!e) return; l.approved = str(e.approved) === '' ? null : num(e.approved); l.comment = e.comment; l.pack = e.pack; l.from = e.from; });
     });
+    S.sup = null;
+    S.msg = { kind: 'info', text: (approve ? 'Утверждаем поставку ' : 'Сохраняем поставку ') + label + '. Можно работать дальше.' };
+    bgSave('saveSupply', { lines: lines, versions: versions, approve: approve }, res => {
+      const ok = res.results.filter(x => x.ok), bad = res.results.filter(x => !x.ok);
+      return { kind: bad.length ? 'warn' : 'ok', text: (approve ? 'Поставка утверждена: ' : 'Поставка сохранена: ') + label +
+        (bad.length ? '\nНе прошли: ' + bad.map(x => x.place + ': ' + x.error).join('; ') : '') };
+    }, 'Поставка ' + label + ' не сохранена');
+    render(); window.scrollTo({ top: 0, behavior: 'smooth' });
   },
   ed(lineId, k, v){ S.ed.lines[lineId][k] = v; },
   edPack(lineId, v){
@@ -2168,6 +2191,24 @@ function fallbackCopy(t){
   try { document.execCommand('copy'); } catch(e){}
   ta.remove();
 }
+
+/* ============================== ФОНОВОЕ СОХРАНЕНИЕ ============================== */
+// Запрос уходит в фоне. Свежие данные применяем от последнего завершившегося запроса.
+function bgSave(action, payload, okMsg, errPrefix){
+  S.bg = (S.bg || 0) + 1;
+  api(action, payload).then(res => {
+    const d = S.pendingData; S.pendingData = null;
+    S.bg--;
+    if (d) applyData(d);
+    S.msg = okMsg(res);
+    renderWhenIdle();
+  }).catch(e => {
+    S.bg--;
+    S.msg = { kind: 'err', text: errPrefix + ': ' + e.message + '. Данные обновлены, проверьте и повторите.' };
+    reload().then(renderWhenIdle, renderWhenIdle);
+  });
+}
+window.addEventListener('beforeunload', e => { if (S.bg > 0) { e.preventDefault(); e.returnValue = ''; } });
 
 /* ============================== СТАРТ ============================== */
 (async function start(){
