@@ -1,7 +1,9 @@
 <!--
   Salateira · Заявки на расходники (zayavki.html)
-  Версия 3.1
+  Версия 3.2
 
+  3.2 — все действия сохраняются в фоне (у ресторанов тоже), экран не блокируется; в утверждённых
+        поставках вместо серых полей обычный текст.
   3.1 — «Утвердить поставку» сохраняется в фоне; меню и подсказки закрываются кликом мимо и по Esc;
         исправлены подсказка, галочка в списке сборки, подписи в пересчёте. Нужен Code.gs ≥ 2.8.0.
   3.0 — новый интерфейс: разделы (сверху, на телефоне снизу) и подразделы, крупные заголовки и
@@ -335,7 +337,7 @@
 'use strict';
 
 const API = 'https://script.google.com/macros/s/AKfycbyFzdhhkVtxq8RWyaUzDBZAqe_M7sLbNgYOVMuly4HHmqLzse5b-5yhAE72PjWscjcF/exec';
-const VERSION = '3.1';
+const VERSION = '3.2';
 const LOGO = '<svg class="logo-mark" viewBox="0 0 1059 188" xmlns="http://www.w3.org/2000/svg" aria-label="Salateira"><path d="M611.586 107.247C617.466 33.8785 734.55 28.51 738.384 107.247C738.384 120.54 732.509 125.577 714.354 126.676H646.098C646.098 153.262 666.549 172.691 697.226 159.397C706.94 153.773 712.564 146.301 717.677 143.037C729.692 135.368 742.162 148.332 734.805 159.397C703.361 206.691 601.105 195.699 611.586 107.247ZM551.401 2.06641C560.578 2.06654 568.017 9.50577 568.017 18.6826V53.4678H583.643C590.138 53.4679 595.403 58.733 595.403 65.2275C595.403 71.722 590.138 76.9872 583.643 76.9873H568.017V149.798C569.105 157.145 571.859 158.706 574.615 159.854C577.938 160.877 582.796 161.464 593.277 158.064C603.758 154.666 616.028 172.892 595.322 182.351C574.615 191.809 533.713 188.997 534.735 153.463L534.804 153.449C534.791 153.181 534.785 152.91 534.785 152.639V76.9873H526.379C519.885 76.9873 514.62 71.7221 514.62 65.2275C514.62 58.733 519.885 53.4678 526.379 53.4678H534.785V18.6826C534.785 9.50569 542.224 2.06641 551.401 2.06641ZM783.589 50.1328C792.766 50.133 800.205 57.5722 800.206 66.749V170.028C800.205 179.205 792.766 186.644 783.589 186.645C774.412 186.645 766.973 179.205 766.973 170.028V66.749C766.973 57.5721 774.412 50.1328 783.589 50.1328ZM850.588 50.1328C859.765 50.1328 867.204 57.5721 867.205 66.749V68.8203C878.771 46.6922 897.178 47.8161 912.415 54.3105C937.723 64.0246 922.128 88.4264 907.045 82.9424C877.779 72.3012 869.743 84.3673 867.205 129.686V170.028C867.204 179.205 859.765 186.645 850.588 186.645C841.412 186.644 833.972 179.205 833.972 170.028V66.749C833.972 57.5722 841.412 50.133 850.588 50.1328ZM336.192 0C345.369 4.01144e-07 352.808 7.4391 352.808 16.6162V170.001C352.808 179.178 345.369 186.617 336.192 186.617C327.015 186.617 319.576 179.178 319.576 170.001V16.6162C319.576 7.4392 327.015 0.000164922 336.192 0ZM172.831 73.6973C186.635 44.8099 284.545 34.5843 284.545 88.5244L286.335 150.134C288.015 158.223 291.666 165.459 291.666 171.097C291.665 188.48 268.44 195.127 255.147 167.518C233.929 182.089 218.846 190.526 190.214 183.879C155.192 171.608 152.38 126.103 190.214 113.321L252.846 99.0059C252.846 62.705 206.065 70.8853 197.628 88.5244C187.358 109.998 160.211 100.105 172.831 73.6973ZM388.629 73.6973C402.434 44.8099 500.344 34.5843 500.344 88.5244L502.134 150.134C503.814 158.223 507.464 165.459 507.464 171.097C507.464 188.48 484.239 195.127 470.946 167.518C449.728 182.089 434.645 190.526 406.013 183.879C370.99 171.608 368.178 126.103 406.013 113.321L468.645 99.0059C468.645 62.705 421.864 70.8853 413.427 88.5244C403.157 109.998 376.01 100.105 388.629 73.6973ZM3.59721 46.8545C3.59721 -7.59644 117.868 -19.6115 134.485 38.9297C139.086 59.8927 110.551 74.4792 101.252 46.8545C92.5596 21.0354 44.7549 17.712 37.3413 46.8545C35.8076 73.186 92.3796 73.4214 112.755 83.4121C152.38 102.841 151.869 151.923 117.869 174.675C85.1468 194.615 9.98783 191.037 0.528848 140.42C-4.1049 115.623 23.0256 107.953 30.6949 128.148C44.7548 159.337 70.0459 163.419 90.771 154.99C108.893 147.62 112.5 117.978 90.771 111.531C35.2011 95.0457 3.59722 93.6373 3.59721 46.8545ZM939.535 73.4414C953.339 44.5541 1051.25 34.3286 1051.25 88.2686L1053.04 149.878C1054.72 157.967 1058.37 165.203 1058.37 170.841C1058.37 188.224 1035.15 194.871 1021.85 167.262C1000.63 181.833 985.55 190.27 956.918 183.623C921.896 171.352 919.084 125.849 956.918 113.066L1019.55 98.75C1019.55 62.4493 972.769 70.6295 964.333 88.2686C954.062 109.742 926.915 99.8493 939.535 73.4414ZM252.846 119.201C232.395 126.615 213.733 128.532 207.086 131.472C193.793 137.351 194.56 154.991 207.086 161.638C223.703 169.051 250.801 157.548 252.846 134.54V119.201ZM468.645 119.201C448.194 126.615 429.532 128.532 422.885 131.472C409.592 137.351 410.359 154.991 422.885 161.638C439.502 169.051 466.6 157.548 468.645 134.54V119.201ZM1019.55 118.945C999.099 126.359 980.438 128.277 973.792 131.217C960.498 137.097 961.265 154.735 973.792 161.382C990.408 168.795 1017.51 157.292 1019.55 134.284V118.945ZM676.775 73.7578C658.369 73.7578 649.166 85.2621 646.098 107.247H706.173C704.128 87.0516 695.692 73.7578 676.775 73.7578ZM783.594 2.06641C792.771 2.06644 800.211 9.50571 800.211 18.6826C800.211 27.8597 792.771 35.2988 783.594 35.2988H783.055C773.878 35.2988 766.439 27.8597 766.439 18.6826C766.439 9.50569 773.878 2.06641 783.055 2.06641H783.594Z" fill="#7002FF"/></svg>';
 const TOKEN_KEY = 'slt_zayavki_token';
 const WD = ['вс','пн','вт','ср','чт','пт','сб'];
@@ -416,20 +418,31 @@ async function api(action, payload){
   return j;
 }
 
+// Действия сохраняются в фоне: экран не блокируется, можно работать дальше.
+// Одно и то же действие повторно не запускается, пока не закончилось первое.
+// Если человек за это время ушёл на другой экран, результат не уводит его обратно.
+const RUNNING = {};
 async function run(fn, okText){
-  if (S.busy) return;
-  S.busy = true; S.msg = null; cover(true);
+  const key = fn.toString();
+  if (RUNNING[key]) return;
+  RUNNING[key] = true;
+  const nav0 = S.navSeq || 0;
+  S.bg = (S.bg || 0) + 1; S.msg = null; render();
+  let r;
   try {
-    const r = await fn();
+    r = await fn();
     S.msgKind = null;
     if (okText) { const t = typeof okText === 'function' ? okText(r) : okText; S.msg = { kind: S.msgKind || 'ok', text: t }; }
-    return r;
   } catch(e) {
     S.msg = { kind: 'err', text: e.message };
   } finally {
-    S.busy = false; cover(false); render();
-    if (S.msg) window.scrollTo({ top: 0, behavior: 'smooth' });
+    delete RUNNING[key];
+    S.bg--;
+    if ((S.navSeq || 0) !== nav0 && S.userTab) S.tab = S.userTab;   // человек ушёл на другой экран — оставляем его там
+    renderWhenIdle();
+    if (S.msg && (S.navSeq || 0) === nav0) window.scrollTo({ top: 0, behavior: 'smooth' });
   }
+  return r;
 }
 // После выбора в левом списке показать карточку справа (на узком экране она ниже списка).
 function showDetail(){
@@ -593,7 +606,7 @@ function render(){
 function title(t, hintText, extra){ return '<div class="ph"><h2 class="panel-title">' + t + '</h2>' + (hintText ? hint(hintText) : '') + (extra || '') + '</div>'; }
 function hint(t){ return '<details class="hint"><summary aria-label="Подсказка">?</summary><div class="hint-body">' + t + '</div></details>'; }
 // Закреплённая снизу полоса с главным действием
-function savebar(info, buttons){ return '<div class="savebar">' + (info ? '<div class="sb-info">' + info + '</div>' : '<div class="sb-info"></div>') + buttons + '</div>'; }
+function savebar(info, buttons){ if (S.bg > 0) info = '<span class="spinner"></span> Сохраняем'; return '<div class="savebar">' + (info ? '<div class="sb-info">' + info + '</div>' : '<div class="sb-info"></div>') + buttons + '</div>'; }
 function plural(n, a, b, c5){ const m = n % 10, m100 = n % 100; return n + ' ' + (m === 1 && m100 !== 11 ? a : (m >= 2 && m <= 4 && (m100 < 10 || m100 >= 20) ? b : c5)); }
 
 const VIEWS = {}, AFTER = {};
@@ -1131,7 +1144,7 @@ function supplyView(s){
     (items[k] = items[k] || { key: k, itemId: l.itemId, name: l.name, unit: l.unit, rows: [] }).rows.push({ r, l });
   }));
   const keys = Object.keys(items).sort((a, b) => { const ia = itemById(items[a].itemId), ib = itemById(items[b].itemId); return ((ia && ia.order) || 1e9) - ((ib && ib.order) || 1e9) || a.localeCompare(b); });
-  html += '<div class="t-wrap"><table class="t ed-t"><thead><tr><th>Позиция и рестораны</th><th class="num">Заказано</th><th style="width:130px">Упаковка</th><th class="num" style="width:96px">Утвердить</th><th style="width:150px">Откуда</th><th>Комментарий ресторану</th></tr></thead><tbody>';
+  html += '<div class="t-wrap"><table class="t ed-t"><thead><tr><th>Позиция и рестораны</th><th class="num">Заказано</th><th style="width:130px">Упаковка</th><th class="num" style="width:96px">' + (s.reqs.some(canEdit) ? 'Утвердить' : 'Утверждено') + '</th><th style="width:150px">Откуда</th><th>Комментарий ресторану</th></tr></thead><tbody>';
   keys.forEach(k => {
     const g = items[k], it = g.itemId ? itemById(g.itemId) : null;
     const editable = g.rows.filter(x => canEdit(x.r));
@@ -1143,9 +1156,9 @@ function supplyView(s){
     html += '<tr class="grp"><td>' + h(g.name) + (!g.itemId ? ' <span class="chip st-Возвращена">нет в справочнике</span>' : '') +
       stockHint(g.itemId, [srcP && srcP.type !== 'Поставщик' ? e0.from : mainStore(itemById(g.itemId))]) + '</td>' +
       '<td class="num"><b>' + fmtN(totReq) + '</b></td>' +
-      '<td>' + packSelect(it, e0.pack || g.unit, 'App.supItem(\'' + h(k) + '\',\'pack\',this.value)', dis) + '</td>' +
+      '<td>' + (editable.length ? packSelect(it, e0.pack || g.unit, 'App.supItem(\'' + h(k) + '\',\'pack\',this.value)', '') : h(e0.pack || g.unit)) + '</td>' +
       '<td class="num"><b data-tot="' + h(k) + '">' + fmtN(totAp) + '</b></td>' +
-      '<td><select' + dis + ' onchange="App.supItem(\'' + h(k) + '\',\'from\',this.value)">' + srcOptions('', e0.from) + '</select></td><td></td></tr>';
+      '<td>' + (editable.length ? '<select onchange="App.supItem(\'' + h(k) + '\',\'from\',this.value)">' + srcOptions('', e0.from) + '</select>' : h(e0.from)) + '</td><td></td></tr>';
     g.rows.forEach(x => { E.itemOf = E.itemOf || {}; E.itemOf[x.l.lineId] = k; });
     g.rows.sort((a, b) => a.r.place.localeCompare(b.r.place)).forEach(x => {
       const e = E.lines[x.l.lineId], ed = canEdit(x.r), dd = ed ? '' : ' disabled';
@@ -1154,9 +1167,9 @@ function supplyView(s){
       html += '<tr><td style="padding-left:24px">' + h(x.r.place) + (ed ? '' : '<span class="sub">' + h(x.r.status) + '</span>') +
         (over ? '<span class="sub" style="color:var(--red)">Больше обычного, обычно около ' + fmtN(us) + '</span>' : '') + '</td>' +
         '<td class="num">' + (x.l.requested === null ? '' : fmtN(x.l.requested)) + '</td><td class="small muted">' + h(e.pack || '') + '</td>' +
-        '<td><input type="text" inputmode="decimal" style="text-align:right" value="' + h(e.approved) + '"' + dd + ' oninput="App.supLine(\'' + x.l.lineId + '\',\'approved\',this.value)"></td>' +
+        (ed ? '<td><input type="text" inputmode="decimal" style="text-align:right" value="' + h(e.approved) + '" oninput="App.supLine(\'' + x.l.lineId + '\',\'approved\',this.value)"></td>' : '<td class="num">' + h(e.approved) + '</td>') +
         '<td class="small muted">' + h(e.from !== e0.from ? e.from : '') + '</td>' +
-        '<td><input type="text" value="' + h(e.comment) + '"' + dd + ' oninput="App.supLine(\'' + x.l.lineId + '\',\'comment\',this.value)"></td></tr>';
+        (ed ? '<td><input type="text" value="' + h(e.comment) + '" oninput="App.supLine(\'' + x.l.lineId + '\',\'comment\',this.value)"></td></tr>' : '<td class="small">' + h(e.comment) + '</td></tr>');
     });
   });
   html += '</tbody></table></div>';
@@ -1228,10 +1241,10 @@ function editor(r){
       (l.invoice ? '<span class="sub">Накладная ' + h(l.invoice) + '</span>' : '') +
       stockHint(l.itemId, [place(e.from) && place(e.from).type !== 'Поставщик' ? e.from : mainStore(itemById(l.itemId))]) + '</td>' +
       '<td class="num">' + (l.requested === null ? '' : fmtN(l.requested)) + '</td>' +
-      '<td>' + packSelect(it, e.pack || l.unit, 'App.edPack(\'' + l.lineId + '\', this.value)', dis) + '</td>' +
-      '<td><input type="text" inputmode="decimal" style="text-align:right" value="' + h(e.approved) + '"' + disQ + ' oninput="App.ed(\'' + l.lineId + '\',\'approved\',this.value)"></td>' +
-      '<td><select' + dis + ' onchange="App.ed(\'' + l.lineId + '\',\'from\',this.value)">' + srcOptions(r.place, e.from) + '</select></td>' +
-      '<td><input type="text" value="' + h(e.comment) + '" ' + disQ + ' oninput="App.ed(\'' + l.lineId + '\',\'comment\',this.value)"></td></tr>';
+      '<td>' + (editable ? packSelect(it, e.pack || l.unit, 'App.edPack(\'' + l.lineId + '\', this.value)', '') : h(e.pack || l.unit)) + '</td>' +
+      (disQ ? '<td class="num">' + h(e.approved) + '</td>' : '<td><input type="text" inputmode="decimal" style="text-align:right" value="' + h(e.approved) + '" oninput="App.ed(\'' + l.lineId + '\',\'approved\',this.value)"></td>') +
+      '<td>' + (editable ? '<select onchange="App.ed(\'' + l.lineId + '\',\'from\',this.value)">' + srcOptions(r.place, e.from) + '</select>' : h(e.from)) + '</td>' +
+      (disQ ? '<td class="small">' + h(e.comment) + '</td></tr>' : '<td><input type="text" value="' + h(e.comment) + '" oninput="App.ed(\'' + l.lineId + '\',\'comment\',this.value)"></td></tr>');
   });
   E.added.forEach((a, k) => {
     const it = itemById(a.itemId);
@@ -1823,7 +1836,7 @@ window.App = {
   refresh: () => run(reload, 'Обновлено'),
   logout: () => logout(false),
   sec(id){ const s = sections().find(x => x.id === id); if (!s) return; S.lastSub = S.lastSub || {}; const t = S.lastSub[id] && s.subs.some(x => x.id === S.lastSub[id]) ? S.lastSub[id] : s.subs[0].id; App.tab(t); },
-  tab(t){ const sc = secOf(t); if (sc) { S.lastSub = S.lastSub || {}; S.lastSub[sc.id] = t; } S.tab = t; S.msg = null; if (t !== 'transfer') S.justCreated = null; render(); window.scrollTo(0,0); },
+  tab(t){ const sc = secOf(t); if (sc) { S.lastSub = S.lastSub || {}; S.lastSub[sc.id] = t; } S.tab = t; S.userTab = t; S.navSeq = (S.navSeq || 0) + 1; S.msg = null; if (t !== 'transfer') S.justCreated = null; render(); window.scrollTo(0,0); },
 
   // заказ ресторана
   cq(v){ S.cart.q = v; keepFocus(render); },
